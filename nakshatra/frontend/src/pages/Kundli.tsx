@@ -1,12 +1,17 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useStore, KundliData } from '@/store'
 import { generateId } from '@/utils/generateId'
 import {
   ChevronLeft, Plus, Star, Clock, MapPin, Calendar, RefreshCw, ChevronDown, ChevronUp,
-  Download, Copy, Share2, Check
+  Download, Copy, Share2, Check, BarChart3, Shield
 } from 'lucide-react'
 import { generateChartImage, shareChart, copyChartToClipboard } from '@/lib/chart-share'
+import {
+  detectYogas, computeAshtakvarga, computeShadbala, detectDoshas,
+  RAHU_KETU_INTERPRETATIONS,
+  type PlanetInput, type AshtakvargaResult, type ShadbalaResult, type YogaResult, type DoshaResult
+} from '@/lib/vedic-calculations'
 
 // ─── Vedic Astrology Data ──────────────────────────────────────────────────
 
@@ -152,9 +157,11 @@ const PLANET_INTERPRETATIONS: Record<string, Record<string, string>> = {
   },
   Rahu: {
     default: 'Rahu represents worldly desires, ambition, and unconventional paths. It amplifies whatever it touches.',
+    ...RAHU_KETU_INTERPRETATIONS.Rahu,
   },
   Ketu: {
     default: 'Ketu represents spiritual liberation, past-life wisdom, and detachment. It brings intuitive insight.',
+    ...RAHU_KETU_INTERPRETATIONS.Ketu,
   },
 }
 
@@ -222,18 +229,25 @@ function getDignityStrength(dignity: string): number {
 }
 
 const YOGA_ICONS: Record<string, string> = {
-  'Gajakesari Yoga': '🐘',
-  'Raja Yoga': '🔱',
-  'Malavya Yoga': '🌸',
-  'Dharma Karma Yoga': '☸️',
-  'Hamsa Yoga': '🦢',
-  'Ruchaka Yoga': '⚔️',
-  'Bhadra Yoga': '💎',
-  'Sasa Yoga': '🪐',
-  'Budhaditya Yoga': '☀️',
-  'Chandra-Mangal Yoga': '🌙',
-  'Amala Yoga': '🏆',
-  'Saraswati Yoga': '📚',
+  // Pancha Mahapurusha
+  'Ruchaka Yoga': '⚔️', 'Bhadra Yoga': '💎', 'Hamsa Yoga': '🦢', 'Malavya Yoga': '🌸', 'Sasa Yoga': '🪐',
+  // Chandra Yogas
+  'Gajakesari Yoga': '🐘', 'Chandra-Mangal Yoga': '🌙', 'Sunapha Yoga': '🌓', 'Anapha Yoga': '🌒',
+  'Durudhara Yoga': '🌕', 'Kemadruma Yoga': '🌑', 'Adhi Yoga': '👑', 'Amala Yoga': '🏆',
+  // Solar Yogas
+  'Budhaditya Yoga': '☀️', 'Vesi Yoga': '🌅', 'Vasi Yoga': '🌄', 'Ubhayachari Yoga': '🌞',
+  // Raj Yogas
+  'Raja Yoga': '🔱', 'Dharma-Karma Adhipati Yoga': '☸️', 'Viparita Raja Yoga': '🔄',
+  'Neechabhanga Raja Yoga': '🏔️', 'Lakshmi Yoga': '🪷', 'Saraswati Yoga': '📚', 'Parijata Yoga': '🌺',
+  // Dhana Yogas
+  'Dhana Yoga': '💰', 'Dhana Yoga (2nd Lord)': '💰', 'Dhana Yoga (11th Lord)': '💰',
+  // Spiritual
+  'Sanyasa Yoga': '🙏', 'Pravrajya Yoga': '🧘', 'Moksha Yoga': '🕉️', 'Tapasvi Yoga': '🔥',
+  // Negative
+  'Kaal Sarpa Dosha': '🐍', 'Grahan Yoga': '🌘', 'Shakata Yoga': '🎡', 'Daridra Yoga': '⚠️',
+  // Misc
+  'Akhanda Samrajya Yoga': '🏛️', 'Chaturmukha Yoga': '🗿', 'Kahala Yoga': '🦁',
+  'Mahabhagya Yoga': '🌟', 'Pushkala Yoga': '🌊', 'Dharma Karma Yoga': '☸️',
   'default': '✨',
 }
 
@@ -317,59 +331,29 @@ function computeMockKundli(birthDate: string, birthTime: string, birthPlace: str
   const currentMaha = mahadashas.find(m => new Date(m.startDate) <= now && new Date(m.endDate) >= now) || mahadashas[0]
   const currentAntar = { planet: DASHA_SEQUENCE[(DASHA_SEQUENCE.indexOf(currentMaha.planet) + 3) % 9], startDate: currentMaha.startDate, endDate: currentMaha.endDate }
 
-  const yogas = []
-  const jupHouse = planets[4].houseNumber
-  const moonHouse = planets[1].houseNumber
-  if ([1, 4, 7, 10].includes(jupHouse) && [1, 4, 7, 10].includes(moonHouse)) {
-    yogas.push({ name: 'Gajakesari Yoga', type: 'Raj', strength: 'Strong', description: 'Jupiter and Moon in mutual kendras bestow great wisdom, fame, and prosperity. This yoga confers intelligence, good character, and wealth.' })
-  }
-  if (planets[0].houseNumber === 10 || planets[4].houseNumber === 10) {
-    yogas.push({ name: 'Raja Yoga', type: 'Raj', strength: 'Moderate', description: 'A benefic planet in the 10th house creates a powerful Raja Yoga, bestowing authority, status, and career success.' })
-  }
-  if (planets[5].houseNumber === 1 || planets[5].houseNumber === 7) {
-    yogas.push({ name: 'Malavya Yoga', type: 'Raj', strength: 'Strong', description: 'Venus in a kendra forms Malavya Pancha Mahapurusha Yoga — grace, artistic talent, and romantic good fortune.' })
-  }
-  // Budhaditya Yoga — Sun + Mercury in same house
-  if (planets[0].houseNumber === planets[3].houseNumber) {
-    yogas.push({ name: 'Budhaditya Yoga', type: 'Raj', strength: 'Moderate', description: 'Sun and Mercury together bestow sharp intellect, eloquent speech, and success in scholarly or administrative pursuits.' })
-  }
-  // Chandra-Mangal Yoga — Moon + Mars in same house
-  if (planets[1].houseNumber === planets[2].houseNumber) {
-    yogas.push({ name: 'Chandra-Mangal Yoga', type: 'Dhana', strength: 'Strong', description: 'Moon and Mars conjunction creates wealth through courage, business acumen, and emotional determination.' })
-  }
-  // Amala Yoga — benefic (Jupiter, Venus, Mercury) in 10th from Lagna
-  const tenthHouse = ((ascRashi - 1 + 9) % 12) + 1
-  if ([planets[3], planets[4], planets[5]].some(p => p.houseNumber === tenthHouse)) {
-    yogas.push({ name: 'Amala Yoga', type: 'Raj', strength: 'Strong', description: 'A benefic planet in the 10th house from Lagna bestows a spotless reputation, virtuous character, and lasting fame.' })
-  }
-  // Pancha Mahapurusha — Mars/Mercury/Jupiter/Venus/Saturn in kendra in own/exalted sign
-  const kendras = [1, 4, 7, 10]
-  if (kendras.includes(planets[2].houseNumber) && (planets[2].rashiIndex === 0 || planets[2].rashiIndex === 7 || planets[2].rashiIndex === 9)) {
-    yogas.push({ name: 'Ruchaka Yoga', type: 'Pancha Mahapurusha', strength: 'Excellent', description: 'Mars in a kendra in own/exalted sign. Grants courage, physical strength, leadership in military or sports, and commanding presence.' })
-  }
-  if (kendras.includes(planets[4].houseNumber) && (planets[4].rashiIndex === 8 || planets[4].rashiIndex === 11 || planets[4].rashiIndex === 3)) {
-    yogas.push({ name: 'Hamsa Yoga', type: 'Pancha Mahapurusha', strength: 'Excellent', description: 'Jupiter in a kendra in own/exalted sign. Bestows wisdom, spiritual inclination, good fortune, and respected social status.' })
-  }
-  if (kendras.includes(planets[5].houseNumber) && (planets[5].rashiIndex === 1 || planets[5].rashiIndex === 6 || planets[5].rashiIndex === 11)) {
-    yogas.push({ name: 'Malavya Yoga', type: 'Pancha Mahapurusha', strength: 'Excellent', description: 'Venus in a kendra in own/exalted sign. Grants beauty, artistic talent, luxury, harmonious relationships, and refined taste.' })
-  }
-  if (kendras.includes(planets[6].houseNumber) && (planets[6].rashiIndex === 9 || planets[6].rashiIndex === 10 || planets[6].rashiIndex === 6)) {
-    yogas.push({ name: 'Sasa Yoga', type: 'Pancha Mahapurusha', strength: 'Excellent', description: 'Saturn in a kendra in own/exalted sign. Grants authority over others, organizational power, and lasting legacy through hard work.' })
-  }
-  // Saraswati Yoga — Jupiter, Venus, Mercury in kendras or trikonas
-  const kendraTrikonas = [1, 4, 5, 7, 9, 10]
-  if (kendraTrikonas.includes(planets[3].houseNumber) && kendraTrikonas.includes(planets[4].houseNumber) && kendraTrikonas.includes(planets[5].houseNumber)) {
-    yogas.push({ name: 'Saraswati Yoga', type: 'Raj', strength: 'Strong', description: 'Mercury, Jupiter, and Venus in kendras/trikonas bestow mastery of arts, eloquence, and scholarly excellence.' })
-  }
+  // Use the comprehensive yoga detection engine (40+ yogas)
+  const planetInputs: PlanetInput[] = planets.map(p => ({
+    ...p,
+    grahaId: String(p.grahaId),
+  }))
+  const detectedYogas = detectYogas(planetInputs, ascRashi - 1)
+  const yogas = detectedYogas.map(y => ({
+    name: y.name,
+    type: y.type,
+    strength: y.strength,
+    description: y.description,
+  }))
   if (yogas.length === 0) {
     yogas.push({ name: 'Dharma Karma Yoga', type: 'Miscellaneous', strength: 'Moderate', description: 'An alignment between dharma (9th) and karma (10th) lords suggests spiritual purpose guiding your life path.' })
   }
 
-  const doshas = []
-  const marsHouse = planets[2].houseNumber
-  if ([1, 2, 4, 7, 8, 12].includes(marsHouse)) {
-    doshas.push({ name: 'Mangal Dosha', severity: 'Moderate', description: 'Mars in the 1st/2nd/4th/7th/8th/12th house creates Mangal Dosha, affecting marriage and relationships. Can be remedied.' })
-  }
+  // Use comprehensive dosha detection (7+ doshas)
+  const detectedDoshas = detectDoshas(planetInputs, ascRashi - 1)
+  const doshas = detectedDoshas.map(d => ({
+    name: d.name,
+    severity: d.severity,
+    description: d.description,
+  }))
 
   return {
     id: generateId(),
@@ -674,6 +658,51 @@ function CinematicLoader({ onComplete }: { onComplete: () => void }) {
 function DashaView({ kundli }: { kundli: KundliData }) {
   const now = new Date()
   const { currentMahadasha, currentAntardasha, mahadashas } = kundli.dashas
+  const [showAntardashas, setShowAntardashas] = useState<string | null>(null)
+
+  // Compute antardasha periods within a mahadasha
+  function getAntardashas(mahaStart: string, mahaEnd: string, mahaPlanet: string) {
+    const totalMs = new Date(mahaEnd).getTime() - new Date(mahaStart).getTime()
+    const mahaYears = DASHA_YEARS[mahaPlanet as keyof typeof DASHA_YEARS]
+    const startIdx = DASHA_SEQUENCE.indexOf(mahaPlanet)
+    const antars: { planet: string; start: Date; end: Date; years: number }[] = []
+    let current = new Date(mahaStart)
+
+    for (let i = 0; i < 9; i++) {
+      const planet = DASHA_SEQUENCE[(startIdx + i) % 9]
+      const antarYears = (DASHA_YEARS[planet as keyof typeof DASHA_YEARS] * mahaYears) / 120
+      const antarMs = (antarYears / mahaYears) * totalMs
+      const end = new Date(current.getTime() + antarMs)
+      antars.push({ planet, start: new Date(current), end, years: antarYears })
+      current = end
+    }
+    return antars
+  }
+
+  // Compute pratyantar dashas within an antardasha
+  function getPratyantars(antarStart: Date, antarEnd: Date, antarPlanet: string) {
+    const totalMs = antarEnd.getTime() - antarStart.getTime()
+    const antarYears = DASHA_YEARS[antarPlanet as keyof typeof DASHA_YEARS]
+    const startIdx = DASHA_SEQUENCE.indexOf(antarPlanet)
+    const prats: { planet: string; start: Date; end: Date }[] = []
+    let current = new Date(antarStart)
+
+    for (let i = 0; i < 9; i++) {
+      const planet = DASHA_SEQUENCE[(startIdx + i) % 9]
+      const pratYears = (DASHA_YEARS[planet as keyof typeof DASHA_YEARS] * antarYears) / 120
+      const pratMs = (pratYears / antarYears) * totalMs
+      const end = new Date(current.getTime() + pratMs)
+      prats.push({ planet, start: new Date(current), end })
+      current = end
+    }
+    return prats
+  }
+
+  // Find current antardasha and pratyantar
+  const currentMahaAntars = getAntardashas(currentMahadasha.startDate, currentMahadasha.endDate, currentMahadasha.planet)
+  const activeAntar = currentMahaAntars.find(a => a.start <= now && a.end >= now)
+  const activePrats = activeAntar ? getPratyantars(activeAntar.start, activeAntar.end, activeAntar.planet) : []
+  const activePrat = activePrats.find(p => p.start <= now && p.end >= now)
 
   return (
     <div className="space-y-4">
@@ -689,12 +718,26 @@ function DashaView({ kundli }: { kundli: KundliData }) {
           </div>
           <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-xl px-4 py-3">
             <div className="text-xs text-cyan-400/70 font-cinzel">Antardasha</div>
-            <div className="text-xl font-cinzel text-cyan-300">{currentAntardasha.planet}</div>
+            <div className="text-xl font-cinzel text-cyan-300">{activeAntar?.planet ?? currentAntardasha.planet}</div>
             <div className="text-xs text-slate-400 mt-1">
-              Until {new Date(currentAntardasha.endDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
+              Until {activeAntar ? activeAntar.end.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : new Date(currentAntardasha.endDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
             </div>
           </div>
+          {activePrat && (
+            <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl px-4 py-3">
+              <div className="text-xs text-purple-400/70 font-cinzel">Pratyantar</div>
+              <div className="text-xl font-cinzel text-purple-300">{activePrat.planet}</div>
+              <div className="text-xs text-slate-400 mt-1">
+                Until {activePrat.end.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
+              </div>
+            </div>
+          )}
         </div>
+        {activeAntar && DASHA_DESCRIPTIONS[activeAntar.planet] && (
+          <p className="text-xs font-cormorant text-slate-400 mt-3 leading-relaxed">
+            <span className="text-gold/50 font-cinzel">Antardasha Theme:</span> {DASHA_DESCRIPTIONS[activeAntar.planet]}
+          </p>
+        )}
       </div>
 
       <div className="font-cinzel text-xs text-gold/60 uppercase tracking-wider mb-2">Life Dasha Timeline</div>
@@ -705,16 +748,24 @@ function DashaView({ kundli }: { kundli: KundliData }) {
           const isCurrent = start <= now && end >= now
           const isPast = end < now
           const color = PLANET_COLORS[dasha.planet] ?? '#888'
+          const isExpanded = showAntardashas === dasha.planet
+          const antars = isExpanded ? getAntardashas(dasha.startDate, dasha.endDate, dasha.planet) : []
 
           return (
-            <div key={idx} className={`rounded-xl p-3 border transition-all ${isCurrent ? 'border-gold/40 bg-gold/5' : isPast ? 'border-stardust/30 bg-stardust/10 opacity-60' : 'border-stardust/20 bg-stardust/5'}`}>
+            <div key={idx}
+              className={`rounded-xl p-3 border transition-all cursor-pointer ${isCurrent ? 'border-gold/40 bg-gold/5' : isPast ? 'border-stardust/30 bg-stardust/10 opacity-60' : 'border-stardust/20 bg-stardust/5'}`}
+              onClick={() => setShowAntardashas(isExpanded ? null : dasha.planet)}
+            >
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full" style={{ background: color }} />
                   <span className="font-cinzel text-sm" style={{ color: isCurrent ? color : undefined }}>{dasha.planet} Mahadasha</span>
                   {isCurrent && <span className="text-xs bg-gold/20 text-gold px-2 rounded-full">Now</span>}
                 </div>
-                <span className="text-xs text-slate-400">{dasha.years}y</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400">{dasha.years}y</span>
+                  {isExpanded ? <ChevronUp size={12} className="text-gold/40" /> : <ChevronDown size={12} className="text-gold/40" />}
+                </div>
               </div>
               {isCurrent && DASHA_DESCRIPTIONS[dasha.planet] && (
                 <p className="text-xs font-cormorant text-slate-400 mb-2 leading-relaxed">{DASHA_DESCRIPTIONS[dasha.planet]}</p>
@@ -730,6 +781,39 @@ function DashaView({ kundli }: { kundli: KundliData }) {
                 <span>{start.getFullYear()}</span>
                 <span>{end.getFullYear()}</span>
               </div>
+
+              {/* Antardasha breakdown */}
+              <AnimatePresence>
+                {isExpanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <div className="mt-3 pt-3 border-t border-stardust/20 space-y-1.5">
+                      <div className="font-cinzel text-[10px] text-cyan-400/60 uppercase tracking-wider mb-1">Antardasha Periods</div>
+                      {antars.map((antar, ai) => {
+                        const aColor = PLANET_COLORS[antar.planet] ?? '#888'
+                        const aIsCurrent = antar.start <= now && antar.end >= now
+                        const aIsPast = antar.end < now
+                        return (
+                          <div key={ai} className={`flex items-center gap-2 text-xs py-1 px-2 rounded-lg ${aIsCurrent ? 'bg-cyan-500/10 border border-cyan-500/20' : ''}`}>
+                            <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: aColor }} />
+                            <span className="font-cinzel w-14 flex-shrink-0" style={{ color: aIsCurrent ? aColor : aIsPast ? '#666' : '#999' }}>{antar.planet}</span>
+                            <span className={`text-[10px] font-cormorant flex-1 ${aIsPast ? 'text-slate-600' : 'text-slate-400'}`}>
+                              {antar.start.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' })} — {antar.end.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' })}
+                            </span>
+                            <span className="text-[10px] text-slate-500 font-cormorant">{antar.years.toFixed(1)}y</span>
+                            {aIsCurrent && <span className="text-[9px] bg-cyan-500/20 text-cyan-300 px-1.5 rounded font-cinzel">Active</span>}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )
         })}
@@ -890,7 +974,25 @@ const YOGA_REMEDIES: Record<string, string[]> = {
   'Ruchaka Yoga': ['Worship Lord Hanuman', 'Wear Red Coral after consultation', 'Practice physical discipline and martial arts', 'Donate to military/police charities'],
   'Hamsa Yoga': ['Study scriptures regularly', 'Worship Lord Vishnu or Jupiter', 'Wear Yellow Sapphire after consultation', 'Teach and share knowledge'],
   'Sasa Yoga': ['Worship Lord Shani on Saturdays', 'Serve the elderly and disabled', 'Wear Blue Sapphire after consultation', 'Practice patience and discipline'],
+  'Bhadra Yoga': ['Worship Lord Vishnu on Wednesdays', 'Wear Emerald after consultation', 'Practice intellectual pursuits and communication skills'],
   'Saraswati Yoga': ['Worship Goddess Saraswati', 'Dedicate time to arts and learning', 'Keep books and instruments clean', 'Chant Saraswati Vandana daily'],
+  'Dharma-Karma Adhipati Yoga': ['Honor your dharma path daily', 'Serve teachers and elders', 'Perform charity on Thursdays and Saturdays'],
+  'Viparita Raja Yoga': ['Trust the transformation process', 'Chant Maha Mrityunjaya Mantra', 'Donate to the needy on Saturdays'],
+  'Neechabhanga Raja Yoga': ['Strengthen the cancelling planet with its gemstone', 'Perform remedies for the debilitated planet', 'Practice patience — results come after initial struggle'],
+  'Lakshmi Yoga': ['Worship Goddess Lakshmi on Fridays', 'Keep finances organized', 'Donate food on Purnima', 'Chant Sri Sukta daily'],
+  'Sunapha Yoga': ['Strengthen the planet behind Moon', 'Practice meditation during moonrise', 'Maintain emotional stability through routine'],
+  'Anapha Yoga': ['Strengthen the planet ahead of Moon', 'Practice creative pursuits', 'Wear Pearl for Moon strength'],
+  'Durudhara Yoga': ['Maintain balance between material and spiritual', 'Wear Pearl or Moonstone', 'Practice gratitude meditation'],
+  'Kemadruma Yoga': ['Urgently strengthen Moon — wear Pearl', 'Chant Chandra Beej Mantra daily', 'Donate white items on Mondays', 'Keep water and milk near bed at night'],
+  'Adhi Yoga': ['Worship benefic planets (Jupiter, Venus, Mercury)', 'Practice leadership with humility', 'Donate on Wednesdays, Thursdays, Fridays'],
+  'Vesi Yoga': ['Worship the planet in 2nd from Sun', 'Practice Surya Namaskar at sunrise', 'Strengthen the involved planet'],
+  'Vasi Yoga': ['Worship the planet in 12th from Sun', 'Offer water to Sun at sunrise', 'Practice service-oriented activities'],
+  'Kaal Sarpa Dosha': ['Perform Kaal Sarpa Puja at Trimbakeshwar', 'Chant Rahu Beej Mantra 108 times daily', 'Donate black sesame seeds on Saturdays', 'Keep silver Naga idol at home'],
+  'Grahan Yoga': ['Perform Grahan Dosha Shanti Puja', 'Donate black cloth on Saturdays', 'Chant mantra of the afflicted luminary (Sun/Moon)'],
+  'Shakata Yoga': ['Strengthen Jupiter with Yellow Sapphire', 'Worship Lord Vishnu on Thursdays', 'Donate yellow items to Brahmins'],
+  'Sanyasa Yoga': ['Embrace spiritual practices', 'Practice meditation and detachment', 'Serve a spiritual community'],
+  'Moksha Yoga': ['Dedicate time to spiritual sadhana', 'Study Vedantic texts', 'Practice selfless service'],
+  'Mahabhagya Yoga': ['Express gratitude for blessings daily', 'Use fortune to help others', 'Maintain humility despite success'],
 }
 
 function YogasView({ kundli }: { kundli: KundliData }) {
@@ -1253,8 +1355,276 @@ function KundliLanding({ onStart }: { onStart: () => void }) {
 
 // ─── Chart View ────────────────────────────────────────────────────────────
 
-const CHART_TABS = ['Chart', 'Planets', 'Dasha', 'Yogas'] as const
+const CHART_TABS = ['Chart', 'Planets', 'Dasha', 'Yogas', 'Ashtakvarga', 'Strength'] as const
 type ChartTab = typeof CHART_TABS[number]
+
+// ─── Ashtakvarga View ──────────────────────────────────────────────────────
+
+function AshtakvargaView({ kundli }: { kundli: KundliData }) {
+  const planetInputs: PlanetInput[] = kundli.planets.map(p => ({ ...p, grahaId: String(p.grahaId) }))
+  const result = useMemo(() => computeAshtakvarga(planetInputs, kundli.ascendant.rashiIndex), [kundli])
+  const maxBindu = Math.max(...result.sarvashtakvarga)
+
+  return (
+    <div className="space-y-6">
+      {/* Sarvashtakvarga overview */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-cinzel text-sm text-gold/60 uppercase tracking-wider">Sarvashtakvarga</h3>
+          <span className="text-xs font-cormorant text-slate-400">Total: {result.totalBindus} bindus</span>
+        </div>
+        <div className="grid grid-cols-6 sm:grid-cols-12 gap-2">
+          {result.sarvashtakvarga.map((score, i) => {
+            const rashi = RASHIS[i]
+            const isStrong = result.strongHouses.includes(i + 1)
+            const isWeak = result.weakHouses.includes(i + 1)
+            const pct = (score / maxBindu) * 100
+            return (
+              <div key={i} className={`text-center p-2 rounded-xl border ${isStrong ? 'border-green-500/30 bg-green-500/5' : isWeak ? 'border-red-500/20 bg-red-500/5' : 'border-stardust/20 bg-stardust/5'}`}>
+                <div className="text-lg">{rashi?.symbol}</div>
+                <div className={`text-sm font-cinzel font-bold ${isStrong ? 'text-green-400' : isWeak ? 'text-red-400' : 'text-white'}`}>{score}</div>
+                <div className="h-1 bg-stardust/30 rounded-full mt-1 overflow-hidden">
+                  <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: isStrong ? '#22c55e' : isWeak ? '#ef4444' : '#FFB347' }} />
+                </div>
+                <div className="text-[9px] text-slate-500 mt-0.5">{rashi?.name?.slice(0, 4)}</div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Strong/Weak houses */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="p-3 rounded-xl border border-green-500/20 bg-green-500/5">
+          <div className="font-cinzel text-xs text-green-400/70 uppercase tracking-wider mb-2">Strong Houses (28+ bindus)</div>
+          {result.strongHouses.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {result.strongHouses.map(h => (
+                <span key={h} className="inline-flex items-center gap-1 text-sm font-cinzel text-green-300 bg-green-500/10 px-2 py-1 rounded-lg border border-green-500/20">
+                  H{h} · {RASHIS[(h + kundli.ascendant.rashiIndex - 1) % 12]?.symbol} {result.sarvashtakvarga[(h + kundli.ascendant.rashiIndex - 1) % 12]}
+                </span>
+              ))}
+            </div>
+          ) : <p className="text-xs text-slate-500 font-cormorant">No houses with 28+ bindus</p>}
+        </div>
+        <div className="p-3 rounded-xl border border-red-500/20 bg-red-500/5">
+          <div className="font-cinzel text-xs text-red-400/70 uppercase tracking-wider mb-2">Weak Houses (&lt;25 bindus)</div>
+          {result.weakHouses.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {result.weakHouses.map(h => (
+                <span key={h} className="inline-flex items-center gap-1 text-sm font-cinzel text-red-300 bg-red-500/10 px-2 py-1 rounded-lg border border-red-500/20">
+                  H{h} · {RASHIS[(h + kundli.ascendant.rashiIndex - 1) % 12]?.symbol} {result.sarvashtakvarga[(h + kundli.ascendant.rashiIndex - 1) % 12]}
+                </span>
+              ))}
+            </div>
+          ) : <p className="text-xs text-slate-500 font-cormorant">No houses below 25 bindus</p>}
+        </div>
+      </div>
+
+      {/* Per-planet Ashtakvarga */}
+      <div>
+        <h3 className="font-cinzel text-sm text-gold/60 uppercase tracking-wider mb-3">Planet-wise Bindus</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs font-cinzel">
+            <thead>
+              <tr className="border-b border-stardust/30">
+                <th className="text-left text-gold/50 py-2 px-1">Planet</th>
+                {RASHIS.map(r => <th key={r.id} className="text-center text-gold/40 py-2 px-1">{r.symbol}</th>)}
+                <th className="text-center text-gold/50 py-2 px-1">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn'].map(planet => {
+                const scores = result.planetScores[planet] ?? new Array(12).fill(0)
+                const total = scores.reduce((a: number, b: number) => a + b, 0)
+                const color = PLANET_COLORS[planet] ?? '#ccc'
+                return (
+                  <tr key={planet} className="border-b border-stardust/10 hover:bg-stardust/10">
+                    <td className="py-2 px-1" style={{ color }}>{PLANET_SYMBOLS[planet]}</td>
+                    {scores.map((s: number, i: number) => (
+                      <td key={i} className={`text-center py-2 px-1 ${s >= 5 ? 'text-green-400' : s <= 2 ? 'text-red-400/60' : 'text-slate-400'}`}>{s}</td>
+                    ))}
+                    <td className="text-center py-2 px-1 font-bold text-white">{total}</td>
+                  </tr>
+                )
+              })}
+              <tr className="border-t border-gold/20">
+                <td className="py-2 px-1 text-gold font-bold">SAV</td>
+                {result.sarvashtakvarga.map((s, i) => (
+                  <td key={i} className={`text-center py-2 px-1 font-bold ${s >= 28 ? 'text-green-400' : s < 25 ? 'text-red-400' : 'text-white'}`}>{s}</td>
+                ))}
+                <td className="text-center py-2 px-1 font-bold text-gold">{result.totalBindus}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="p-3 rounded-xl bg-purple-500/5 border border-purple-500/20">
+        <p className="text-xs font-cormorant text-slate-400">
+          Ashtakvarga is a system of 8-fold strength analysis. Each planet receives benefic points (bindus) from 7 planets plus the Ascendant.
+          Houses with 28+ bindus in Sarvashtakvarga are strong for transits. Houses below 25 indicate areas needing attention.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+// ─── Shadbala (Strength) View ─────────────────────────────────────────────
+
+function ShadbalaView({ kundli }: { kundli: KundliData }) {
+  const planetInputs: PlanetInput[] = kundli.planets.map(p => ({ ...p, grahaId: String(p.grahaId) }))
+  const [y, m] = kundli.birthDate.split('-').map(Number)
+  const birthHour = kundli.birthTime ? parseInt(kundli.birthTime.split(':')[0]) : 12
+  const result = useMemo(() => computeShadbala(planetInputs, kundli.ascendant.rashiIndex, m, birthHour), [kundli])
+
+  const BALA_LABELS = [
+    { key: 'sthana' as const, label: 'Sthana', desc: 'Positional', color: '#FFB347' },
+    { key: 'dig' as const, label: 'Dig', desc: 'Directional', color: '#7DF9FF' },
+    { key: 'kala' as const, label: 'Kala', desc: 'Temporal', color: '#FFD700' },
+    { key: 'chesta' as const, label: 'Chesta', desc: 'Motional', color: '#FF6B6B' },
+    { key: 'naisargika' as const, label: 'Naisargika', desc: 'Natural', color: '#9B87F5' },
+    { key: 'drik' as const, label: 'Drik', desc: 'Aspectual', color: '#FFB6C1' },
+  ]
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="font-cinzel text-sm text-gold/60 uppercase tracking-wider">Shadbala — Six-fold Planetary Strength</h3>
+      </div>
+
+      {['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn'].map(planet => {
+        const entry = result.planets[planet]
+        if (!entry) return null
+        const color = PLANET_COLORS[planet] ?? '#ccc'
+
+        return (
+          <motion.div
+            key={planet}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`rounded-xl border p-4 ${entry.isStrong ? 'border-green-500/20 bg-green-500/[0.02]' : 'border-red-500/20 bg-red-500/[0.02]'}`}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: `${color}22`, border: `1px solid ${color}44` }}>
+                  <span className="font-cinzel text-xs font-bold" style={{ color }}>{PLANET_SYMBOLS[planet]}</span>
+                </div>
+                <div>
+                  <span className="font-cinzel text-sm text-white">{planet}</span>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className={`text-xs font-cinzel px-1.5 rounded ${entry.isStrong ? 'bg-green-500/20 text-green-300 border border-green-500/30' : 'bg-red-500/20 text-red-300 border border-red-500/30'}`}>
+                      {entry.isStrong ? 'Strong' : 'Weak'}
+                    </span>
+                    <span className="text-xs text-slate-400 font-cormorant">{entry.percentage}% of required</span>
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-lg font-cinzel font-bold" style={{ color }}>{entry.total.toFixed(0)}</span>
+                <span className="text-xs text-slate-500 font-cormorant block">total rupas</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-6 gap-1.5">
+              {BALA_LABELS.map(bala => {
+                const val = entry[bala.key]
+                return (
+                  <div key={bala.key} className="text-center">
+                    <div className="h-12 bg-stardust/20 rounded-lg relative overflow-hidden flex items-end justify-center">
+                      <motion.div
+                        className="w-full rounded-t-sm"
+                        initial={{ height: 0 }}
+                        animate={{ height: `${Math.min(val, 100)}%` }}
+                        transition={{ duration: 0.6 }}
+                        style={{ background: bala.color, opacity: 0.6 }}
+                      />
+                    </div>
+                    <div className="text-[9px] font-cinzel text-slate-500 mt-1">{bala.label}</div>
+                    <div className="text-[10px] font-cinzel" style={{ color: bala.color }}>{val.toFixed(0)}</div>
+                  </div>
+                )
+              })}
+            </div>
+          </motion.div>
+        )
+      })}
+
+      <div className="p-3 rounded-xl bg-purple-500/5 border border-purple-500/20">
+        <p className="text-xs font-cormorant text-slate-400">
+          Shadbala measures planetary strength through 6 factors: Sthana (positional/dignity), Dig (directional),
+          Kala (temporal — day/night birth), Chesta (motional/retrograde), Naisargika (natural), and Drik (aspectual).
+          A planet above 100% of its required minimum is considered strong.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+// ─── Divisional Charts ────────────────────────────────────────────────────
+
+type DivisionalChart = 'D1' | 'D3' | 'D4' | 'D7' | 'D9' | 'D10' | 'D12'
+
+const DIVISIONAL_CHARTS: { key: DivisionalChart; name: string; purpose: string }[] = [
+  { key: 'D1', name: 'Rashi', purpose: 'Overall life' },
+  { key: 'D3', name: 'Drekkana', purpose: 'Siblings & courage' },
+  { key: 'D4', name: 'Chaturthamsa', purpose: 'Property & fortune' },
+  { key: 'D7', name: 'Saptamsa', purpose: 'Children & progeny' },
+  { key: 'D9', name: 'Navamsha', purpose: 'Marriage & dharma' },
+  { key: 'D10', name: 'Dasamsa', purpose: 'Career & profession' },
+  { key: 'D12', name: 'Dwadasamsa', purpose: 'Parents & ancestry' },
+]
+
+function computeDivisionalChart(kundli: KundliData, division: number): KundliData {
+  function getDivisionalRashi(rashiIndex: number, degree: number, div: number): number {
+    const partSize = 30 / div
+    const part = Math.floor((degree % 30) / partSize)
+
+    if (div === 3) {
+      // Drekkana: 1st=same, 2nd=5th from, 3rd=9th from
+      const offsets = [0, 4, 8]
+      return (rashiIndex + offsets[part % 3]) % 12
+    }
+    if (div === 4) {
+      // Chaturthamsa: starts from sign, 4th, 7th, 10th
+      return (rashiIndex + part * 3) % 12
+    }
+    if (div === 7) {
+      // Saptamsa: odd signs start from same sign, even start from 7th
+      const start = rashiIndex % 2 === 0 ? rashiIndex : (rashiIndex + 6) % 12
+      return (start + part) % 12
+    }
+    if (div === 9) {
+      // Navamsha: based on element
+      const FIRE = [0, 4, 8], EARTH = [1, 5, 9], AIR = [2, 6, 10]
+      let startSign: number
+      if (FIRE.includes(rashiIndex)) startSign = 0
+      else if (EARTH.includes(rashiIndex)) startSign = 9
+      else if (AIR.includes(rashiIndex)) startSign = 6
+      else startSign = 3
+      return (startSign + part) % 12
+    }
+    if (div === 10) {
+      // Dasamsa: odd signs start from same, even from 9th
+      const start = rashiIndex % 2 === 0 ? rashiIndex : (rashiIndex + 8) % 12
+      return (start + part) % 12
+    }
+    if (div === 12) {
+      // Dwadasamsa: starts from same sign, each 2.5 degrees
+      return (rashiIndex + part) % 12
+    }
+    return rashiIndex
+  }
+
+  const ascD = getDivisionalRashi(kundli.ascendant.rashiIndex, kundli.ascendant.degree % 30, division)
+  const divPlanets = kundli.planets.map(p => {
+    const dRashi = getDivisionalRashi(p.rashiIndex, p.degree % 30, division)
+    const house = ((dRashi - ascD + 12) % 12) + 1
+    return { ...p, rashiIndex: dRashi, houseNumber: house }
+  })
+
+  return { ...kundli, planets: divPlanets, ascendant: { ...kundli.ascendant, rashiIndex: ascD } }
+}
 
 // Navamsha (D9) calculation
 function computeNavamsha(kundli: KundliData): KundliData {
@@ -1345,7 +1715,7 @@ function ShareButtons({ kundli }: { kundli: KundliData }) {
 
 function KundliChartView({ kundli, onNew }: { kundli: KundliData; onNew: () => void }) {
   const [activeTab, setActiveTab] = useState<ChartTab>('Chart')
-  const [chartMode, setChartMode] = useState<'D1' | 'D9'>('D1')
+  const [chartMode, setChartMode] = useState<DivisionalChart>('D1')
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-4xl mx-auto space-y-6">
@@ -1388,39 +1758,49 @@ function KundliChartView({ kundli, onNew }: { kundli: KundliData; onNew: () => v
         >
           {activeTab === 'Chart' && (
             <div className="glass-card p-6 space-y-4">
-              {/* D1/D9 toggle + share */}
+              {/* Divisional chart selector + share */}
               <div className="flex items-center justify-between flex-wrap gap-2">
-                <div className="flex gap-1 bg-stardust/30 rounded-lg p-0.5">
-                  {(['D1', 'D9'] as const).map(mode => (
+                <div className="flex gap-1 bg-stardust/30 rounded-lg p-0.5 overflow-x-auto">
+                  {DIVISIONAL_CHARTS.map(dc => (
                     <button
-                      key={mode}
-                      onClick={() => setChartMode(mode)}
-                      className={`px-3 py-1 rounded-md text-xs font-cinzel transition-all ${chartMode === mode ? 'bg-gold/20 text-gold border border-gold/30' : 'text-slate-400 hover:text-slate-200'}`}
+                      key={dc.key}
+                      onClick={() => setChartMode(dc.key)}
+                      className={`px-2 py-1 rounded-md text-xs font-cinzel transition-all whitespace-nowrap ${chartMode === dc.key ? 'bg-gold/20 text-gold border border-gold/30' : 'text-slate-400 hover:text-slate-200'}`}
+                      title={`${dc.name} — ${dc.purpose}`}
                     >
-                      {mode === 'D1' ? 'Rashi (D1)' : 'Navamsha (D9)'}
+                      {dc.key}
                     </button>
                   ))}
                 </div>
                 <ShareButtons kundli={kundli} />
               </div>
 
+              {/* Current chart label */}
+              {(() => {
+                const dc = DIVISIONAL_CHARTS.find(d => d.key === chartMode)
+                return dc ? (
+                  <div className="text-center">
+                    <span className="text-xs font-cormorant text-slate-400">{dc.name} — {dc.purpose}</span>
+                  </div>
+                ) : null
+              })()}
+
               <div className="flex flex-col lg:flex-row gap-6 items-start">
                 <div className="flex-shrink-0 mx-auto lg:mx-0">
                   <h3 className="font-cinzel text-sm text-gold/60 uppercase tracking-wider text-center mb-3">
-                    {chartMode === 'D1' ? 'North Indian Chart (Rashi)' : 'Navamsha Chart (D9)'}
+                    {chartMode === 'D1' ? 'North Indian Chart (Rashi)' : `${DIVISIONAL_CHARTS.find(d => d.key === chartMode)?.name ?? ''} Chart (${chartMode})`}
                   </h3>
-                  {chartMode === 'D1' ? (
-                    <NorthIndianChart kundli={kundli} size={320} />
-                  ) : (
-                    <NorthIndianChart kundli={computeNavamsha(kundli)} size={320} />
-                  )}
+                  <NorthIndianChart
+                    kundli={chartMode === 'D1' ? kundli : computeDivisionalChart(kundli, parseInt(chartMode.slice(1)))}
+                    size={320}
+                  />
                 </div>
                 <div className="flex-1 space-y-3">
                   <h3 className="font-cinzel text-sm text-gold/60 uppercase tracking-wider">
-                    {chartMode === 'D1' ? 'Planet Positions' : 'Navamsha Positions'}
+                    {chartMode === 'D1' ? 'Planet Positions' : `${chartMode} Positions`}
                   </h3>
                   <div className="grid grid-cols-1 gap-2">
-                    {(chartMode === 'D1' ? kundli : computeNavamsha(kundli)).planets.map(p => {
+                    {(chartMode === 'D1' ? kundli : computeDivisionalChart(kundli, parseInt(chartMode.slice(1)))).planets.map(p => {
                       const rashi = RASHIS[p.rashiIndex]
                       const color = PLANET_COLORS[p.name] ?? '#ccc'
                       return (
@@ -1459,6 +1839,18 @@ function KundliChartView({ kundli, onNew }: { kundli: KundliData; onNew: () => v
           {activeTab === 'Yogas' && (
             <div className="glass-card p-5">
               <YogasView kundli={kundli} />
+            </div>
+          )}
+
+          {activeTab === 'Ashtakvarga' && (
+            <div className="glass-card p-5">
+              <AshtakvargaView kundli={kundli} />
+            </div>
+          )}
+
+          {activeTab === 'Strength' && (
+            <div className="glass-card p-5">
+              <ShadbalaView kundli={kundli} />
             </div>
           )}
         </motion.div>

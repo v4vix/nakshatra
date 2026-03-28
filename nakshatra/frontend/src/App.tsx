@@ -37,6 +37,7 @@ const MoodJournalPage = lazy(() => import('@/pages/MoodJournal'))
 const MuhurtaAlertsPage = lazy(() => import('@/pages/MuhurtaAlerts'))
 const LearningPage = lazy(() => import('@/pages/Learning'))
 const YearAheadPage = lazy(() => import('@/pages/YearAhead'))
+const VideoAnalysisPage = lazy(() => import('@/pages/VideoAnalysis'))
 const PrivacyPolicyPage = lazy(() => import('@/pages/Legal/PrivacyPolicy'))
 const TermsOfServicePage = lazy(() => import('@/pages/Legal/TermsOfService'))
 
@@ -127,6 +128,7 @@ export default function App() {
               { path: '/muhurta-alerts', Component: MuhurtaAlertsPage },
               { path: '/learning', Component: LearningPage },
               { path: '/year-ahead', Component: YearAheadPage },
+              { path: '/video-analysis', Component: VideoAnalysisPage },
             ].map(({ path, Component }) => (
               <Route
                 key={path}

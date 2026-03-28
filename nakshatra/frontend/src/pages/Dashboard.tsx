@@ -75,7 +75,7 @@ const MOON_PHASES = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '�
 function getMoonPhase(date: Date): { phase: string; name: string } {
   // Approximate lunar cycle: ~29.53 days
   // Known new moon: Jan 11 2024
-  const knownNewMoon = new Date('2024-01-11')
+  const knownNewMoon = new Date(2024, 0, 11) // Jan 11 2024 local (avoids UTC parse bug)
   const daysSince = Math.floor((date.getTime() - knownNewMoon.getTime()) / (1000 * 60 * 60 * 24))
   const cycleDay = ((daysSince % 30) + 30) % 30
   const phaseIndex = Math.floor(cycleDay / 3.75)

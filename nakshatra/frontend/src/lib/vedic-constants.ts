@@ -44,10 +44,10 @@ export const AUSPICIOUS_NAKSHATRAS = new Set<NakshatraName>([
 
 // ─── Nakshatra Classification Arrays (indexed 0-26) ──────────────────────────
 
-/** 0=Deva, 1=Manushya, 2=Rakshasa */
+/** 0=Deva, 1=Manushya, 2=Rakshasa — matches constants/nakshatras.ts authoritative source */
 export const NAKSHATRA_GANA = [
-  0, 2, 0, 0, 1, 2, 0, 0, 2, 2, 2, 0, 0, 2, 0, 2, 0, 2,
-  2, 1, 0, 0, 2, 2, 1, 0, 0,
+  0, 1, 2, 1, 0, 1, 0, 0, 2, 2, 1, 1, 0, 2, 0, 2, 0, 2,
+  2, 1, 1, 0, 2, 2, 1, 1, 0,
 ] as const;
 
 /** 0=Aadi, 1=Madhya, 2=Antya */

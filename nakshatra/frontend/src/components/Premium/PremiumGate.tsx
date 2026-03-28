@@ -21,6 +21,7 @@ const FEATURE_BENEFITS: Record<string, string> = {
   pdf_export: 'Download a beautifully formatted PDF of any birth chart.',
   share_cards: 'Create and share stunning cosmic insight cards for every feature.',
   numerology_full: 'Unlock all 6 numerology numbers including Expression, Soul Urge & more.',
+  video_analysis: 'Generate a cinematic video analysis of your Kundli covering planetary positions, dashas, forecasts, remedies and more. Share via WhatsApp or email.',
 }
 
 function getDescription(feature: string, featureName: string): string {

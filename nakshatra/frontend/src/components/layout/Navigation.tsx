@@ -28,6 +28,7 @@ const navItems = [
   { path: '/muhurta-alerts', icon: Clock, label: 'Muhurta Planner', emoji: '⏰' },
   { path: '/learning', icon: BookOpen, label: 'Learning', emoji: '📚' },
   { path: '/year-ahead', icon: Star, label: 'Year Ahead', emoji: '🔮' },
+  { path: '/video-analysis', icon: Crown, label: 'Video Analysis', emoji: '🎬' },
   { path: '/community', icon: Users, label: 'Community', emoji: '🌐' },
   { path: '/achievements', icon: Trophy, label: 'Achievements', emoji: '🏆' },
   { path: '/profile', icon: User, label: 'Profile', emoji: '👤' },
