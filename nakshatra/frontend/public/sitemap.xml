@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://nakshatra.app/</loc><priority>1.0</priority><changefreq>daily</changefreq></url>
+  <url><loc>https://nakshatra.app/dashboard</loc><priority>0.9</priority><changefreq>daily</changefreq></url>
+  <url><loc>https://nakshatra.app/kundli</loc><priority>0.9</priority><changefreq>weekly</changefreq></url>
+  <url><loc>https://nakshatra.app/tarot</loc><priority>0.9</priority><changefreq>weekly</changefreq></url>
+  <url><loc>https://nakshatra.app/oracle</loc><priority>0.8</priority><changefreq>daily</changefreq></url>
+  <url><loc>https://nakshatra.app/numerology</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>
+  <url><loc>https://nakshatra.app/vastu</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>
+  <url><loc>https://nakshatra.app/compatibility</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>
+  <url><loc>https://nakshatra.app/panchanga</loc><priority>0.8</priority><changefreq>daily</changefreq></url>
+  <url><loc>https://nakshatra.app/muhurta</loc><priority>0.7</priority><changefreq>weekly</changefreq></url>
+  <url><loc>https://nakshatra.app/scriptures</loc><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://nakshatra.app/community</loc><priority>0.7</priority><changefreq>daily</changefreq></url>
+</urlset>

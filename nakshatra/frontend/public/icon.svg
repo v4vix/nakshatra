@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#0A1A2F"/>
+      <stop offset="100%" stop-color="#020B18"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="50%" cy="45%" r="40%">
+      <stop offset="0%" stop-color="#9333EA" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="transparent" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFD700"/>
+      <stop offset="50%" stop-color="#FFB347"/>
+      <stop offset="100%" stop-color="#FF8C00"/>
+    </linearGradient>
+    <linearGradient id="goldLight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFD700" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#FF8C00" stop-opacity="0.1"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1024" height="1024" rx="224" fill="url(#bg)"/>
+
+  <!-- Cosmic glow -->
+  <ellipse cx="512" cy="460" rx="340" ry="300" fill="url(#glow)"/>
+
+  <!-- Outer ring -->
+  <circle cx="512" cy="512" r="360" fill="none" stroke="url(#gold)" stroke-width="2" opacity="0.15"/>
+  <circle cx="512" cy="512" r="320" fill="none" stroke="url(#gold)" stroke-width="1.5" opacity="0.1"/>
+
+  <!-- 27 Nakshatra dots around the ring -->
+  <g opacity="0.4">
+    <circle cx="512" cy="152" r="4" fill="#FFB347"/>
+    <circle cx="645" cy="168" r="3" fill="#FFB347"/>
+    <circle cx="760" cy="230" r="3.5" fill="#FFB347"/>
+    <circle cx="840" cy="330" r="3" fill="#FFB347"/>
+    <circle cx="872" cy="450" r="4" fill="#FFB347"/>
+    <circle cx="855" cy="575" r="3" fill="#FFB347"/>
+    <circle cx="795" cy="685" r="3.5" fill="#FFB347"/>
+    <circle cx="700" cy="770" r="3" fill="#FFB347"/>
+    <circle cx="590" cy="820" r="4" fill="#FFB347"/>
+    <circle cx="470" cy="825" r="3" fill="#FFB347"/>
+    <circle cx="355" cy="785" r="3.5" fill="#FFB347"/>
+    <circle cx="265" cy="710" r="3" fill="#FFB347"/>
+    <circle cx="200" cy="610" r="4" fill="#FFB347"/>
+    <circle cx="172" cy="490" r="3" fill="#FFB347"/>
+    <circle cx="185" cy="370" r="3.5" fill="#FFB347"/>
+    <circle cx="240" cy="265" r="3" fill="#FFB347"/>
+    <circle cx="335" cy="190" r="4" fill="#FFB347"/>
+    <circle cx="440" cy="155" r="3" fill="#FFB347"/>
+  </g>
+
+  <!-- Central 8-pointed star (nakshatra symbol) -->
+  <g transform="translate(512,490)">
+    <!-- Inner glow -->
+    <ellipse cx="0" cy="0" rx="140" ry="140" fill="url(#goldLight)"/>
+
+    <!-- Star paths -->
+    <polygon
+      points="0,-180 30,-60 160,-60 50,20 90,150 0,70 -90,150 -50,20 -160,-60 -30,-60"
+      fill="none"
+      stroke="url(#gold)"
+      stroke-width="5"
+      stroke-linejoin="round"
+    />
+
+    <!-- Inner diamond -->
+    <polygon
+      points="0,-90 55,0 0,90 -55,0"
+      fill="none"
+      stroke="url(#gold)"
+      stroke-width="3"
+      opacity="0.5"
+    />
+
+    <!-- Center dot -->
+    <circle cx="0" cy="0" r="12" fill="url(#gold)"/>
+    <circle cx="0" cy="0" r="6" fill="#020B18"/>
+  </g>
+
+  <!-- Letter "N" overlaid -->
+  <text
+    x="512"
+    y="530"
+    text-anchor="middle"
+    dominant-baseline="central"
+    font-family="serif"
+    font-weight="700"
+    font-size="200"
+    fill="url(#gold)"
+    opacity="0.9"
+    letter-spacing="-5"
+  >N</text>
+
+  <!-- Small sparkle accents -->
+  <g opacity="0.6">
+    <polygon points="280,200 284,210 294,214 284,218 280,228 276,218 266,214 276,210" fill="#C084FC"/>
+    <polygon points="750,300 753,308 761,311 753,314 750,322 747,314 739,311 747,308" fill="#C084FC"/>
+    <polygon points="320,720 323,728 331,731 323,734 320,742 317,734 309,731 317,728" fill="#C084FC"/>
+    <polygon points="700,650 703,657 710,660 703,663 700,670 697,663 690,660 697,657" fill="#FFB347"/>
+  </g>
+</svg>

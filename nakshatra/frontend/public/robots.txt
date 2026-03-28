@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Sitemap: https://nakshatra.app/sitemap.xml
+
+# Crawl-delay for politeness
+Crawl-delay: 1

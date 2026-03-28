@@ -1,0 +1,28 @@
+{
+  "name": "Nakshatra - Vedic Wisdom Quest",
+  "short_name": "Nakshatra",
+  "description": "Gamified Vedic astrology, Tarot, Numerology & ancient Hindu wisdom",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020B18",
+  "theme_color": "#FFB347",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["lifestyle", "education", "health"],
+  "screenshots": [],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

@@ -1,0 +1,195 @@
+// ============================================================
+// Kundli Chart Image Generator & Share
+// Creates beautiful shareable chart cards using Canvas API.
+// ============================================================
+
+import { RASHI_DATA } from '@/lib/vedic-constants'
+
+interface ChartData {
+  planets: Record<number, string[]> // house -> planet abbreviations
+  ascendantRashi: string
+  nakshatra: string
+}
+
+interface UserInfo {
+  name: string
+  birthDate?: string
+  birthTime?: string
+  birthPlace?: string
+  rashi?: string
+}
+
+// North Indian chart house positions (diamond layout)
+const HOUSE_COORDS: Record<number, { x: number; y: number }> = {
+  1: { x: 200, y: 60 },
+  2: { x: 100, y: 60 },
+  3: { x: 40, y: 120 },
+  4: { x: 100, y: 200 },
+  5: { x: 40, y: 280 },
+  6: { x: 100, y: 340 },
+  7: { x: 200, y: 340 },
+  8: { x: 300, y: 340 },
+  9: { x: 360, y: 280 },
+  10: { x: 300, y: 200 },
+  11: { x: 360, y: 120 },
+  12: { x: 300, y: 60 },
+}
+
+function drawStars(ctx: CanvasRenderingContext2D, w: number, h: number) {
+  ctx.fillStyle = 'rgba(255,255,255,0.3)'
+  const rng = (seed: number) => {
+    let s = seed
+    return () => { s = (s * 16807) % 2147483647; return s / 2147483647 }
+  }
+  const rand = rng(42)
+  for (let i = 0; i < 60; i++) {
+    const x = rand() * w
+    const y = rand() * h
+    const r = rand() * 1.5
+    ctx.beginPath()
+    ctx.arc(x, y, r, 0, Math.PI * 2)
+    ctx.fill()
+  }
+}
+
+export async function generateChartImage(
+  chart: ChartData,
+  user: UserInfo,
+  options: { showBirthDetails?: boolean; theme?: 'dark' | 'cosmic' } = {}
+): Promise<Blob> {
+  const { showBirthDetails = true, theme = 'cosmic' } = options
+  const canvas = document.createElement('canvas')
+  canvas.width = 440
+  canvas.height = 600
+  const ctx = canvas.getContext('2d')!
+
+  // Background
+  const gradient = ctx.createLinearGradient(0, 0, 440, 600)
+  if (theme === 'cosmic') {
+    gradient.addColorStop(0, '#0a0e27')
+    gradient.addColorStop(0.5, '#1a1040')
+    gradient.addColorStop(1, '#0a0e27')
+  } else {
+    gradient.addColorStop(0, '#0f172a')
+    gradient.addColorStop(1, '#1e293b')
+  }
+  ctx.fillStyle = gradient
+  ctx.fillRect(0, 0, 440, 600)
+  drawStars(ctx, 440, 600)
+
+  // Gold border
+  ctx.strokeStyle = 'rgba(255,179,71,0.4)'
+  ctx.lineWidth = 2
+  ctx.strokeRect(10, 10, 420, 580)
+
+  // Title
+  ctx.fillStyle = '#FFB347'
+  ctx.font = 'bold 20px serif'
+  ctx.textAlign = 'center'
+  ctx.fillText(user.name || 'Kundli Chart', 220, 45)
+
+  // Rashi/Nakshatra info
+  ctx.fillStyle = 'rgba(255,255,255,0.6)'
+  ctx.font = '12px sans-serif'
+  const rashiSymbol = RASHI_DATA.find(r => r.name === chart.ascendantRashi)?.symbol || ''
+  ctx.fillText(`${rashiSymbol} ${chart.ascendantRashi} Lagna | ${chart.nakshatra} Nakshatra`, 220, 65)
+
+  // Birth details
+  if (showBirthDetails && user.birthDate) {
+    ctx.fillStyle = 'rgba(255,255,255,0.4)'
+    ctx.font = '11px sans-serif'
+    const details = [user.birthDate, user.birthTime, user.birthPlace].filter(Boolean).join(' | ')
+    ctx.fillText(details, 220, 82)
+  }
+
+  // Draw North Indian chart diamond
+  const cx = 220, cy = 230, size = 130
+  ctx.strokeStyle = 'rgba(255,179,71,0.5)'
+  ctx.lineWidth = 1.5
+
+  // Outer diamond
+  ctx.beginPath()
+  ctx.moveTo(cx, cy - size)
+  ctx.lineTo(cx + size, cy)
+  ctx.lineTo(cx, cy + size)
+  ctx.lineTo(cx - size, cy)
+  ctx.closePath()
+  ctx.stroke()
+
+  // Inner square
+  ctx.beginPath()
+  ctx.moveTo(cx - size / 2, cy - size / 2)
+  ctx.lineTo(cx + size / 2, cy - size / 2)
+  ctx.lineTo(cx + size / 2, cy + size / 2)
+  ctx.lineTo(cx - size / 2, cy + size / 2)
+  ctx.closePath()
+  ctx.stroke()
+
+  // Cross lines
+  ctx.beginPath()
+  ctx.moveTo(cx, cy - size); ctx.lineTo(cx - size / 2, cy - size / 2)
+  ctx.moveTo(cx, cy - size); ctx.lineTo(cx + size / 2, cy - size / 2)
+  ctx.moveTo(cx + size, cy); ctx.lineTo(cx + size / 2, cy - size / 2)
+  ctx.moveTo(cx + size, cy); ctx.lineTo(cx + size / 2, cy + size / 2)
+  ctx.moveTo(cx, cy + size); ctx.lineTo(cx + size / 2, cy + size / 2)
+  ctx.moveTo(cx, cy + size); ctx.lineTo(cx - size / 2, cy + size / 2)
+  ctx.moveTo(cx - size, cy); ctx.lineTo(cx - size / 2, cy + size / 2)
+  ctx.moveTo(cx - size, cy); ctx.lineTo(cx - size / 2, cy - size / 2)
+  ctx.stroke()
+
+  // Planet labels in houses
+  ctx.fillStyle = '#FFD700'
+  ctx.font = 'bold 11px sans-serif'
+  ctx.textAlign = 'center'
+  for (let h = 1; h <= 12; h++) {
+    const planets = chart.planets[h]
+    if (planets && planets.length > 0) {
+      const coord = HOUSE_COORDS[h]
+      ctx.fillText(planets.join(' '), coord.x + 20, coord.y + 165)
+    }
+  }
+
+  // "Asc" label in house 1
+  ctx.fillStyle = 'rgba(255,179,71,0.8)'
+  ctx.font = '9px sans-serif'
+  ctx.fillText('Asc', HOUSE_COORDS[1].x + 20, HOUSE_COORDS[1].y + 178)
+
+  // Branding footer
+  ctx.fillStyle = 'rgba(255,179,71,0.3)'
+  ctx.font = '10px sans-serif'
+  ctx.fillText('Generated by Nakshatra App', 220, 560)
+  ctx.fillText('bitsizegyaan.com', 220, 575)
+
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => resolve(blob!), 'image/png')
+  })
+}
+
+export async function shareChart(blob: Blob, title: string): Promise<void> {
+  const file = new File([blob], 'my-kundli.png', { type: 'image/png' })
+
+  if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
+    await navigator.share({ title, text: 'My Vedic Birth Chart from Nakshatra', files: [file] })
+  } else {
+    // Fallback: download
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'my-kundli.png'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+}
+
+export async function copyChartToClipboard(blob: Blob): Promise<boolean> {
+  try {
+    await navigator.clipboard.write([
+      new ClipboardItem({ 'image/png': blob })
+    ])
+    return true
+  } catch {
+    return false
+  }
+}

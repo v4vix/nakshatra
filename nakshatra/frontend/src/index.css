@@ -1,0 +1,231 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;900&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Noto+Serif+Devanagari:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-void: #000511;
+  --color-cosmos: #020B18;
+  --color-nebula: #061628;
+  --color-stardust: #0D2137;
+  --color-saffron: #FF6B00;
+  --color-gold: #FFB347;
+  --color-goldenrod: #DAA520;
+  --scrollbar-thumb: #0D2137;
+  --scrollbar-track: #020B18;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Cormorant Garamond', serif;
+  background-color: var(--color-cosmos);
+  color: #F1F5F9;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #1a3a5c;
+}
+
+/* Cosmic starfield canvas */
+#starfield {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Typography */
+.font-cinzel { font-family: 'Cinzel', serif; }
+.font-cormorant { font-family: 'Cormorant Garamond', serif; }
+.font-devanagari { font-family: 'Noto Serif Devanagari', serif; }
+
+/* Gold gradient text */
+.text-gold-gradient {
+  background: linear-gradient(135deg, #FFB347 0%, #DAA520 50%, #FF6B00 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-aurora-gradient {
+  background: linear-gradient(135deg, #C084FC 0%, #818CF8 50%, #38BDF8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glass morphism cards */
+.glass-card {
+  background: rgba(13, 33, 55, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 179, 71, 0.15);
+  border-radius: 16px;
+}
+
+.glass-card-dark {
+  background: rgba(6, 22, 40, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 179, 71, 0.1);
+  border-radius: 16px;
+}
+
+/* Shimmering border */
+.shimmer-border {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.shimmer-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  padding: 1px;
+  background: linear-gradient(135deg, #FFB347, #6B21A8, #FFB347);
+  background-size: 200% 200%;
+  animation: shimmer-rotate 3s linear infinite;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+@keyframes shimmer-rotate {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Tarot card flip */
+.tarot-card-wrapper {
+  perspective: 1000px;
+}
+.tarot-card-inner {
+  transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+  position: relative;
+}
+.tarot-card-inner.flipped {
+  transform: rotateY(180deg);
+}
+.tarot-card-front,
+.tarot-card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.tarot-card-back {
+  transform: rotateY(180deg);
+}
+
+/* Planet glyph colors */
+.planet-sun { color: #FFD700; }
+.planet-moon { color: #C0C0C0; }
+.planet-mars { color: #CC2200; }
+.planet-mercury { color: #00CC88; }
+.planet-jupiter { color: #F0A500; }
+.planet-venus { color: #FF69B4; }
+.planet-saturn { color: #8B8B8B; }
+.planet-rahu { color: #4A4A6A; }
+.planet-ketu { color: #8B4513; }
+
+/* XP bar fill animation */
+@keyframes xp-fill {
+  from { width: 0%; }
+}
+.xp-bar-fill {
+  animation: xp-fill 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Achievement toast */
+.achievement-toast {
+  background: linear-gradient(135deg, #0D2137, #061628);
+  border: 1px solid rgba(255, 179, 71, 0.5);
+  border-radius: 12px;
+  box-shadow: 0 0 30px rgba(255, 179, 71, 0.3);
+}
+
+/* Mandala loading spinner */
+.mandala-spinner {
+  animation: spin 8s linear infinite;
+}
+
+/* Cosmic glow rings */
+.cosmic-ring {
+  border-radius: 50%;
+  position: absolute;
+  animation: cosmic-ring-pulse 3s ease-in-out infinite;
+}
+
+@keyframes cosmic-ring-pulse {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.05); }
+}
+
+/* Vastu grid colors */
+.vastu-north { background: rgba(59, 130, 246, 0.2); border-color: rgba(59, 130, 246, 0.5); }
+.vastu-northeast { background: rgba(34, 197, 94, 0.2); border-color: rgba(34, 197, 94, 0.5); }
+.vastu-east { background: rgba(234, 179, 8, 0.2); border-color: rgba(234, 179, 8, 0.5); }
+.vastu-southeast { background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.5); }
+.vastu-south { background: rgba(249, 115, 22, 0.2); border-color: rgba(249, 115, 22, 0.5); }
+.vastu-southwest { background: rgba(168, 85, 247, 0.2); border-color: rgba(168, 85, 247, 0.5); }
+.vastu-west { background: rgba(14, 165, 233, 0.2); border-color: rgba(14, 165, 233, 0.5); }
+.vastu-northwest { background: rgba(20, 184, 166, 0.2); border-color: rgba(20, 184, 166, 0.5); }
+.vastu-center { background: rgba(255, 179, 71, 0.2); border-color: rgba(255, 179, 71, 0.5); }
+
+/* Rarity badge colors */
+.rarity-common { color: #94A3B8; border-color: #94A3B8; }
+.rarity-uncommon { color: #22C55E; border-color: #22C55E; }
+.rarity-rare { color: #3B82F6; border-color: #3B82F6; }
+.rarity-epic { color: #A855F7; border-color: #A855F7; }
+.rarity-legendary { color: #FFB347; border-color: #FFB347; text-shadow: 0 0 10px rgba(255, 179, 71, 0.8); }
+
+/* Responsive typography */
+@layer base {
+  h1 { font-family: 'Cinzel', serif; }
+  h2 { font-family: 'Cinzel', serif; }
+  h3 { font-family: 'Cinzel', serif; }
+}
+
+/* Selection */
+::selection {
+  background-color: rgba(255, 179, 71, 0.3);
+  color: #F7E7CE;
+}
+
+/* Focus ring */
+:focus-visible {
+  outline: 2px solid rgba(255, 179, 71, 0.6);
+  outline-offset: 2px;
+}
