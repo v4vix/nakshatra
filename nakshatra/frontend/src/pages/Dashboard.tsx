@@ -375,7 +375,17 @@ export default function Dashboard() {
 
   useEffect(() => {
     getDailyShloka()
-      .then((data) => { if (data) setDailyShloka(data) })
+      .then((data) => {
+        if (data?.shloka) {
+          setDailyShloka({
+            text: data.shloka.verse || data.shloka.text || '',
+            source: data.shloka.source || '',
+            translation: data.shloka.translation || data.shloka.meaning || '',
+          })
+        } else if (data?.text || data?.verse) {
+          setDailyShloka({ text: data.text || data.verse, source: data.source || '', translation: data.translation })
+        }
+      })
       .catch(() => { /* silently ignore – dashboard stays functional */ })
   }, [])
 
