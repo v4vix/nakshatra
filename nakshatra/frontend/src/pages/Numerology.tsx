@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useStore } from '@/store'
 import { Calculator, RefreshCw, ChevronDown, ChevronUp, Zap, Info } from 'lucide-react'
+import { calculateNumerology, getNumerologyCompatibility } from '@/services/api'
 
 // ─── Number Systems ────────────────────────────────────────────────────────
 
@@ -161,10 +162,27 @@ function NameCompatibility({ lifePath, system }: { lifePath: number; system: Num
   const [otherBirthDate, setOtherBirthDate] = useState('')
   const [compatResult, setCompatResult] = useState<{ score: number; otherLP: number; description: string } | null>(null)
 
-  function checkCompat() {
+  async function checkCompat() {
     if (!otherName.trim() || !otherBirthDate) return
     const otherLP = calcLifePath(otherBirthDate)
-    // Simple compatibility matrix
+
+    // Try backend API first
+    try {
+      const apiResult = await getNumerologyCompatibility(lifePath, otherLP)
+      if (apiResult?.success && apiResult.compatibility) {
+        const c = apiResult.compatibility
+        setCompatResult({
+          score: c.score ?? c.harmonyScore ?? (c.isHarmonic ? 9 : 5),
+          otherLP,
+          description: c.description ?? c.summary ?? '',
+        })
+        return
+      }
+    } catch {
+      // API unavailable — fall back to local
+    }
+
+    // Local fallback: simple compatibility matrix
     const harmonious: Record<number, number[]> = {
       1: [3, 5, 6], 2: [4, 6, 8], 3: [1, 5, 9], 4: [2, 6, 8],
       5: [1, 3, 7], 6: [1, 2, 4, 9], 7: [3, 5, 9], 8: [2, 4, 6],
@@ -886,8 +904,32 @@ export default function NumerologyPage() {
     return null
   })
 
-  function handleCalculate(f: FormState) {
-    const r = calculate(f.fullName, f.birthDate, f.system)
+  async function handleCalculate(f: FormState) {
+    // Always compute local result as fallback
+    const localResult = calculate(f.fullName, f.birthDate, f.system)
+    let r = localResult
+
+    // Try backend API first
+    try {
+      const apiResult = await calculateNumerology(f.fullName, f.birthDate)
+      if (apiResult?.success && apiResult.numbers) {
+        const n = apiResult.numbers
+        r = {
+          lifePath: n.lifePath.value,
+          expression: n.expression.value,
+          soulUrge: n.soulUrge.value,
+          personality: n.personality.value,
+          personalYear: n.personalYear.value,
+          personalMonth: localResult.personalMonth,    // not in API
+          personalDay: localResult.personalDay,        // not in API
+          maturityNumber: localResult.maturityNumber,   // not in API
+          birthdayNumber: n.birthday.value,
+        }
+      }
+    } catch {
+      // API unavailable — use local result
+    }
+
     setForm(f)
     setResult(r)
 

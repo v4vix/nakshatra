@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useStore } from '@/store'
 import { generateId } from '@/utils/generateId'
+import { analyzeVastu } from '@/services/api'
 import {
   Home,
   Building2,
@@ -653,6 +654,8 @@ export default function Vastu() {
   const [analysisComplete, setAnalysisComplete] = useState(false)
   const [vastuScore, setVastuScore] = useState<number | null>(null)
   const [newRoomName, setNewRoomName] = useState('')
+  const [apiAnalysis, setApiAnalysis] = useState<any>(null)
+  const [analyzing, setAnalyzing] = useState(false)
 
   const addRoom = () => {
     if (!newRoomName.trim()) return
@@ -713,6 +716,29 @@ export default function Vastu() {
     setAnalysisComplete(true)
     addXP(35, 'vastu_analysis')
     toast.success('+35 XP earned! Vastu analysis complete.', { icon: '🏠' })
+
+    // Fire API call for deeper backend analysis
+    const zonePayload = DIRECTIONS.map((dir) => ({
+      direction: ZONES[dir].label,
+      rooms: getRoomsForZone(dir),
+    })).filter((z) => z.rooms.length > 0)
+
+    if (zonePayload.length > 0) {
+      setAnalyzing(true)
+      setApiAnalysis(null)
+      analyzeVastu(zonePayload)
+        .then((result) => {
+          if (result) {
+            setApiAnalysis(result)
+          } else {
+            toast('Using local analysis — backend unavailable', { icon: 'ℹ️' })
+          }
+        })
+        .catch(() => {
+          toast('Using local analysis — backend unavailable', { icon: 'ℹ️' })
+        })
+        .finally(() => setAnalyzing(false))
+    }
   }
 
   const scoreColor = vastuScore !== null
@@ -1001,6 +1027,118 @@ export default function Vastu() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* API Analysis Results */}
+      {analyzing && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="glass-card rounded-2xl p-6 mb-6 text-center"
+        >
+          <div className="flex items-center justify-center gap-3">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 2, ease: 'linear' }}
+            >
+              <Compass className="w-5 h-5 text-saffron" />
+            </motion.div>
+            <span className="text-sm text-white/60 font-cinzel">
+              Getting deeper Vastu analysis from our pandits...
+            </span>
+          </div>
+        </motion.div>
+      )}
+
+      {apiAnalysis && !analyzing && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass-card rounded-2xl p-6 mb-6"
+        >
+          <h2 className="text-lg font-cinzel text-champagne mb-4 flex items-center gap-2">
+            <Star className="w-5 h-5 text-gold" />
+            Detailed Vastu Analysis
+          </h2>
+
+          {/* Overall Score from API */}
+          {apiAnalysis.overallScore != null && (
+            <div className="mb-4 p-4 bg-white/5 rounded-xl text-center">
+              <div className="text-xs text-white/50 uppercase tracking-wider mb-1">Backend Score</div>
+              <div className={`text-4xl font-cinzel font-bold ${
+                apiAnalysis.overallScore >= 80 ? 'text-green-400' : apiAnalysis.overallScore >= 60 ? 'text-saffron' : 'text-red-400'
+              }`}>
+                {apiAnalysis.overallScore}
+              </div>
+            </div>
+          )}
+
+          {/* Interpretation */}
+          {apiAnalysis.interpretation && (
+            <div className="mb-4 p-4 bg-gold/5 rounded-xl border border-gold/20">
+              <h3 className="text-xs font-cinzel text-gold mb-2">Interpretation</h3>
+              <p className="text-sm text-white/70 font-cormorant leading-relaxed">
+                {apiAnalysis.interpretation}
+              </p>
+            </div>
+          )}
+
+          {/* Per-zone analysis */}
+          {apiAnalysis.zones && Array.isArray(apiAnalysis.zones) && apiAnalysis.zones.length > 0 && (
+            <div>
+              <h3 className="text-xs font-cinzel text-white/50 uppercase tracking-wider mb-3">
+                Zone-by-Zone Analysis
+              </h3>
+              <div className="space-y-3">
+                {apiAnalysis.zones.map((z: any, i: number) => (
+                  <div key={i} className="p-3 bg-white/5 rounded-xl">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-cinzel text-saffron">{z.direction || z.zone}</span>
+                      {z.score != null && (
+                        <span className={`text-sm font-cinzel font-bold ${
+                          z.score >= 80 ? 'text-green-400' : z.score >= 60 ? 'text-saffron' : 'text-red-400'
+                        }`}>
+                          {z.score}/100
+                        </span>
+                      )}
+                    </div>
+                    {z.rooms && z.rooms.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-1">
+                        {z.rooms.map((r: string, ri: number) => (
+                          <span key={ri} className="text-[10px] bg-gold/15 text-gold px-1.5 py-0.5 rounded">
+                            {r}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {z.analysis && (
+                      <p className="text-xs text-white/60 font-cormorant">{z.analysis}</p>
+                    )}
+                    {z.suggestion && (
+                      <p className="text-xs text-celestial mt-1">Suggestion: {z.suggestion}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Remedies from API */}
+          {apiAnalysis.remedies && Array.isArray(apiAnalysis.remedies) && apiAnalysis.remedies.length > 0 && (
+            <div className="mt-4 p-4 bg-green-500/5 rounded-xl border border-green-500/20">
+              <h3 className="text-xs font-cinzel text-green-400 mb-2 flex items-center gap-1">
+                <Gem className="w-3 h-3" /> Recommended Remedies
+              </h3>
+              <ul className="space-y-1">
+                {apiAnalysis.remedies.map((r: string, i: number) => (
+                  <li key={i} className="text-xs text-white/60 flex items-start gap-2">
+                    <span className="text-green-400 mt-0.5">✦</span> {r}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </motion.div>
+      )}
 
       {/* Zone Drawer */}
       {selectedZone && (

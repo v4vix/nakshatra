@@ -748,7 +748,7 @@ export default function OraclePage() {
 
     // Prepare placeholder oracle message for streaming
     const oracleId = `oracle-${Date.now()}`
-    const API_BASE = import.meta.env.VITE_API_URL || ''
+    const API_BASE = import.meta.env.VITE_API_URL || '/api/v1'
 
     // Try RAG-powered SSE streaming endpoint first
     let usedRAG = false

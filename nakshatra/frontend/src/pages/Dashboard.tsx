@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useStore } from '@/store'
 import { useTranslation } from '@/i18n'
+import { getDailyShloka } from '@/services/api'
 import {
   Flame, Star, Zap, Trophy, BookOpen, Sparkles,
   ChevronRight, Clock, Activity, TrendingUp
@@ -370,6 +371,14 @@ export default function Dashboard() {
   const moonPhase = useMemo(() => getMoonPhase(today), [today])
   const challenge = useMemo(() => getDailyChallenge(today), [today])
 
+  const [dailyShloka, setDailyShloka] = useState<{ text: string; source: string; translation?: string } | null>(null)
+
+  useEffect(() => {
+    getDailyShloka()
+      .then((data) => { if (data) setDailyShloka(data) })
+      .catch(() => { /* silently ignore – dashboard stays functional */ })
+  }, [])
+
   const activeKundli = kundlis[0] ?? null
 
   const weeklyXP = useMemo(() => {
@@ -500,6 +509,27 @@ export default function Dashboard() {
           <StatCard icon={<BookOpen size={14} />} label={t('dashboard.readings')} value={tarotReadings.length + kundlis.length} sub={t('dashboard.totalSessions')} />
           <StatCard icon={<Trophy size={14} />} label={t('dashboard.achievementsLabel')} value={user?.achievements?.length ?? 0} sub={t('dashboard.unlocked')} />
         </motion.div>
+
+        {/* ── Daily Shloka ────────────────────────────────────────── */}
+        {dailyShloka && (
+          <motion.div variants={itemVariants}>
+            <div className="glass-card p-6 border border-rose-500/30 bg-gradient-to-br from-rose-500/10 to-amber-600/5">
+              <div className="flex items-center gap-2 mb-4">
+                <BookOpen size={16} className="text-rose-300" />
+                <h2 className="font-cinzel text-sm uppercase tracking-widest text-rose-300">Today's Shloka</h2>
+              </div>
+              <blockquote className="font-cormorant text-lg text-white leading-relaxed italic">
+                "{dailyShloka.text}"
+              </blockquote>
+              {dailyShloka.translation && (
+                <p className="font-cormorant text-sm text-slate-300 mt-3 leading-relaxed">
+                  {dailyShloka.translation}
+                </p>
+              )}
+              <p className="font-cinzel text-xs text-gold/60 mt-4 tracking-wide">— {dailyShloka.source}</p>
+            </div>
+          </motion.div>
+        )}
 
         {/* ── Feature Cards Grid ───────────────────────────────────── */}
         <div>

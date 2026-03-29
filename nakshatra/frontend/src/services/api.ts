@@ -382,12 +382,12 @@ export async function oracleChat(
 
 // ─── Tarot API ───────────────────────────────────────────────────────────────
 
-export async function drawTarotCards(count: number): Promise<any[] | null> {
+export async function drawTarotCards(count: number, spread?: string): Promise<any[] | null> {
   try {
     const res = await fetch(`${API_BASE}/tarot/draw`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ count }),
+      body: JSON.stringify({ count, spread: spread || 'general' }),
       signal: AbortSignal.timeout(5000),
     })
     if (res.ok) {
@@ -395,6 +395,26 @@ export async function drawTarotCards(count: number): Promise<any[] | null> {
       return data.cards || null
     }
   } catch { /* fallback to local */ }
+  return null
+}
+
+export async function getTarotReading(
+  spread: string,
+  cards: { name: string; position: string; reversed: boolean }[],
+  question?: string,
+): Promise<string | null> {
+  try {
+    const res = await fetch(`${API_BASE}/tarot/reading`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ spread, cards, question }),
+      signal: AbortSignal.timeout(10000),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      return data.interpretation || data.reading?.interpretation || null
+    }
+  } catch { /* fallback */ }
   return null
 }
 
@@ -413,6 +433,19 @@ export async function calculateNumerology(fullName: string, dateOfBirth: string)
   return null
 }
 
+export async function getNumerologyCompatibility(lifePath1: number, lifePath2: number): Promise<any | null> {
+  try {
+    const res = await fetch(`${API_BASE}/numerology/compatibility`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lifePath1, lifePath2 }),
+      signal: AbortSignal.timeout(5000),
+    })
+    if (res.ok) return await res.json()
+  } catch { /* fallback */ }
+  return null
+}
+
 // ─── Scripture API ───────────────────────────────────────────────────────────
 
 export async function getDailyShloka(): Promise<any | null> {
@@ -425,12 +458,25 @@ export async function getDailyShloka(): Promise<any | null> {
 
 // ─── Vastu API ───────────────────────────────────────────────────────────────
 
-export async function analyzeVastu(zones: string[]): Promise<any | null> {
+export async function analyzeVastu(zones: { direction: string; rooms: string[] }[]): Promise<any | null> {
   try {
     const res = await fetch(`${API_BASE}/vastu/analyze`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ zones }),
+      signal: AbortSignal.timeout(8000),
+    })
+    if (res.ok) return await res.json()
+  } catch { /* fallback */ }
+  return null
+}
+
+export async function getVastuZoneInfo(zone: string): Promise<any | null> {
+  try {
+    const res = await fetch(`${API_BASE}/vastu/zone`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ zone }),
       signal: AbortSignal.timeout(5000),
     })
     if (res.ok) return await res.json()
@@ -442,7 +488,7 @@ export async function analyzeVastu(zones: string[]): Promise<any | null> {
 
 export async function checkBackendHealth(): Promise<boolean> {
   try {
-    const res = await fetch('/health', { signal: AbortSignal.timeout(3000) })
+    const res = await fetch(`${API_BASE.replace('/api/v1', '')}/health`, { signal: AbortSignal.timeout(3000) })
     return res.ok
   } catch {
     return false

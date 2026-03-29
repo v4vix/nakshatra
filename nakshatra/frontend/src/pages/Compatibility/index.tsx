@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import ShareCard from '@/components/ShareCard'
+import { calculateKundli } from '@/services/api'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -694,19 +695,41 @@ export default function CompatibilityPage() {
     setResult(calculateCompatibility(chart1, chart2))
   }
 
-  function handleCalculate() {
+  async function buildChartWithAPI(input: PersonInput): Promise<LocalChart> {
+    // Try backend for accurate ephemeris-based Moon position
+    try {
+      const result = await calculateKundli(input.name, input.birthDate, input.birthTime || '12:00', input.birthPlace || 'India')
+      if (result.source === 'api' && result.data) {
+        const moonPlanet = result.data.planets.find(p => p.name === 'Moon')
+        if (moonPlanet) {
+          return {
+            name: input.name.trim() || 'Person',
+            birthDate: input.birthDate,
+            rashiIndex: moonPlanet.rashiIndex,
+            nakshatraIndex: moonPlanet.nakshatraIndex,
+            nakshatraPada: moonPlanet.pada,
+          }
+        }
+      }
+    } catch { /* fall through to local */ }
+    return buildLocalChart(input)
+  }
+
+  async function handleCalculate() {
     if (!isReady) {
       toast.error('Please fill in names and birth dates for both persons.')
       return
     }
     setLoading(true)
-    // Brief delay for animation feel
-    setTimeout(() => {
-      const chart1 = buildLocalChart(person1)
-      const chart2 = buildLocalChart(person2)
-      const res    = calculateCompatibility(chart1, chart2)
+
+    try {
+      // Try API-powered charts for accurate Moon positions, fall back to local
+      const [chart1, chart2] = await Promise.all([
+        buildChartWithAPI(person1),
+        buildChartWithAPI(person2),
+      ])
+      const res = calculateCompatibility(chart1, chart2)
       setResult(res)
-      setLoading(false)
 
       // Save to history
       const entry: MatchHistory = {
@@ -733,7 +756,15 @@ export default function CompatibilityPage() {
       setTimeout(() => {
         resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       }, 200)
-    }, 900)
+    } catch {
+      // Fallback to pure local
+      const chart1 = buildLocalChart(person1)
+      const chart2 = buildLocalChart(person2)
+      const res = calculateCompatibility(chart1, chart2)
+      setResult(res)
+    } finally {
+      setLoading(false)
+    }
   }
 
   function handleReset() {

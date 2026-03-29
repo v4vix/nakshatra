@@ -1,7 +1,8 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useStore, TarotReading } from '@/store'
 import { generateId } from '@/utils/generateId'
+import { drawTarotCards, getTarotReading } from '@/services/api'
 import { Search, ChevronLeft, BookOpen, Zap, Star, Clock, X, RefreshCw, ChevronRight, Layers } from 'lucide-react'
 
 // ─── Complete Tarot Deck ───────────────────────────────────────────────────
@@ -299,13 +300,16 @@ function seededShuffle<T>(arr: T[], seed: number): T[] {
   return a
 }
 
-function getSpreadCards(spread: SpreadConfig, date: Date): { card: TarotCardDef; position: string; reversed: boolean }[] {
-  const seed = date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate() + spread.cardCount * 7
-  const shuffled = seededShuffle(FULL_DECK, seed)
+function getSpreadCards(spread: SpreadConfig): { card: TarotCardDef; position: string; reversed: boolean }[] {
+  const shuffled = [...FULL_DECK]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
   return spread.positions.map((pos, i) => ({
     card: shuffled[i % shuffled.length],
     position: pos,
-    reversed: ((seed + i * 13) % 4) === 0,
+    reversed: Math.random() < 0.25,
   }))
 }
 
@@ -761,7 +765,25 @@ interface SpreadViewProps {
 }
 
 function SpreadView({ spread, date, onBack, onComplete }: SpreadViewProps) {
-  const cards = useMemo(() => getSpreadCards(spread, date), [spread, date])
+  const [cards, setCards] = useState<{ card: TarotCardDef; position: string; reversed: boolean }[]>(() => getSpreadCards(spread))
+
+  useEffect(() => {
+    let cancelled = false
+    drawTarotCards(spread.cardCount, spread.id).then(apiCards => {
+      if (cancelled || !apiCards) return
+      const mapped = apiCards.map((ac: any, i: number) => {
+        const match = FULL_DECK.find(d => d.name.toLowerCase() === (ac.name || '').toLowerCase())
+        return {
+          card: match || FULL_DECK[i % FULL_DECK.length],
+          position: spread.positions[i] || `Card ${i + 1}`,
+          reversed: ac.reversed ?? Math.random() < 0.25,
+        }
+      })
+      if (mapped.length === spread.cardCount) setCards(mapped)
+    })
+    return () => { cancelled = true }
+  }, [spread])
+
   const [flipped, setFlipped] = useState<Set<number>>(new Set())
   const [drawerItem, setDrawerItem] = useState<{ card: TarotCardDef; position: string; reversed: boolean; idx: number } | null>(null)
   const [interpretation, setInterpretation] = useState('')
@@ -792,19 +814,13 @@ function SpreadView({ spread, date, onBack, onComplete }: SpreadViewProps) {
   async function getInterpretation() {
     setLoadingInterp(true)
     try {
-      const res = await fetch('/api/v1/tarot/interpret', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          spread: spread.name,
-          cards: cards.map(c => ({ name: c.card.name, position: c.position, reversed: c.reversed }))
-        }),
-        signal: AbortSignal.timeout(8000),
-      }).catch(() => null)
-
-      if (res?.ok) {
-        const data = await res.json()
-        setInterpretation(data.interpretation || data.text || '')
+      const apiInterp = await getTarotReading(
+        spread.name,
+        cards.map(c => ({ name: c.card.name, position: c.position, reversed: c.reversed })),
+        question
+      )
+      if (apiInterp) {
+        setInterpretation(apiInterp)
       } else {
         const summary = cards.map(c =>
           `${c.position}: ${c.card.name}${c.reversed ? ' (reversed)' : ''} — ${c.reversed ? c.card.reversedMeaning : c.card.uprightMeaning}`

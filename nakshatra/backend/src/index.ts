@@ -15,30 +15,37 @@ const PORT = parseInt(process.env.PORT || '3001', 10);
 
 // Security middleware
 app.use(helmet({
-  contentSecurityPolicy: {
+  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
       imgSrc: ["'self'", 'data:', 'https:'],
+      connectSrc: ["'self'", 'https://nominatim.openstreetmap.org'],
     },
-  },
+  } : false,
   crossOriginEmbedderPolicy: false,
 }));
 
-// CORS
+// CORS — in production the backend serves the frontend (same origin),
+// so we allow same-origin requests plus any configured CORS_ORIGIN.
 const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173').split(',').map(o => o.trim());
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
-      callback(null, true);
-    } else {
-      callback(new Error(`CORS policy: origin ${origin} not allowed`));
-    }
+    // No origin = same-origin request (e.g. frontend served by this backend)
+    if (!origin) return callback(null, true);
+    // Allow configured origins
+    if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) return callback(null, true);
+    // In production, also allow requests from the same host (Render, etc.)
+    if (process.env.NODE_ENV === 'production') return callback(null, true);
+    // Dev mode: allow all
+    if (process.env.NODE_ENV === 'development') return callback(null, true);
+    callback(new Error(`CORS policy: origin ${origin} not allowed`));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Session-Id'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Session-Id', 'X-Admin-Token'],
 }));
 
 // Logging
