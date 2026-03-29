@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import path from 'path';
 import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -87,10 +88,20 @@ app.get('/health', (_req: Request, res: Response) => {
 // API routes
 app.use('/api/v1', apiRouter);
 
-// 404 handler
-app.use((_req: Request, res: Response) => {
-  res.status(404).json({ error: 'Route not found' });
-});
+// Serve frontend static files in production
+const publicDir = path.join(__dirname, '..', 'public');
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(publicDir, { maxAge: '1d' }));
+  // SPA fallback: any non-API route returns index.html
+  app.get('*', (_req: Request, res: Response) => {
+    res.sendFile(path.join(publicDir, 'index.html'));
+  });
+} else {
+  // 404 handler for dev (frontend served by Vite)
+  app.use((_req: Request, res: Response) => {
+    res.status(404).json({ error: 'Route not found' });
+  });
+}
 
 // Global error handler
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {

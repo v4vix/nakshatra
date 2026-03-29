@@ -1,0 +1,27 @@
+# Render Blueprint — deploy Nakshatra as a single web service (free tier)
+# Push to GitHub and connect the repo at https://dashboard.render.com
+#
+# Free tier: 750 hours/month, auto-sleep after 15 min idle
+# Custom domain: add via Render dashboard after deployment
+
+services:
+  - type: web
+    name: nakshatra
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: oregon
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3001"
+      - key: CORS_ORIGIN
+        value: "*"
+      - key: ADMIN_TOKEN
+        generateValue: true
+      - key: GROQ_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false

@@ -12,6 +12,7 @@ import {
   RAHU_KETU_INTERPRETATIONS,
   type PlanetInput, type AshtakvargaResult, type ShadbalaResult, type YogaResult, type DoshaResult
 } from '@/lib/vedic-calculations'
+import { calculateKundli } from '@/services/api'
 
 // ─── Vedic Astrology Data ──────────────────────────────────────────────────
 
@@ -1177,20 +1178,14 @@ function CreateKundliForm({ onComplete }: { onComplete: (data: KundliData) => vo
     setLoading(true)
     setError('')
     try {
-      const res = await fetch('/api/v1/kundli/calculate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-        signal: AbortSignal.timeout(5000),
-      }).catch(() => null)
-
+      // Try backend API first (real ephemeris), fall back to client-side
+      const result = await calculateKundli(form.name, form.birthDate, form.birthTime, form.birthPlace)
       let data: KundliData
-      if (res && res.ok) {
-        data = await res.json()
+      if (result.source === 'api' && result.data) {
+        data = result.data
       } else {
         data = computeMockKundli(form.birthDate, form.birthTime, form.birthPlace, form.name)
       }
-      // Store data but show cinematic first
       setPendingData(data)
       setShowCinematic(true)
     } catch {
@@ -1659,14 +1654,34 @@ function computeNavamsha(kundli: KundliData): KundliData {
   }
 }
 
+function kundliToChartData(k: KundliData) {
+  const RASHI_NAMES = ['Mesha','Vrishabha','Mithuna','Karka','Simha','Kanya','Tula','Vrishchika','Dhanu','Makara','Kumbha','Meena']
+  const NAKSHATRA_NAMES_SHORT = ['Ashwini','Bharani','Krittika','Rohini','Mrigashira','Ardra','Punarvasu','Pushya','Ashlesha','Magha','P.Phalguni','U.Phalguni','Hasta','Chitra','Swati','Vishakha','Anuradha','Jyeshtha','Mula','P.Ashadha','U.Ashadha','Shravana','Dhanishtha','Shatabhisha','P.Bhadrapada','U.Bhadrapada','Revati']
+  const PLANET_ABBR: Record<string, string> = { Sun: 'Su', Moon: 'Mo', Mars: 'Ma', Mercury: 'Me', Jupiter: 'Ju', Venus: 'Ve', Saturn: 'Sa', Rahu: 'Ra', Ketu: 'Ke' }
+  const planets: Record<number, string[]> = {}
+  for (const p of k.planets) {
+    const h = p.houseNumber
+    if (!planets[h]) planets[h] = []
+    planets[h].push(PLANET_ABBR[p.name] || p.name.slice(0, 2))
+  }
+  return {
+    planets,
+    ascendantRashi: RASHI_NAMES[k.ascendant.rashiIndex] || 'Mesha',
+    nakshatra: NAKSHATRA_NAMES_SHORT[k.ascendant.nakshatraIndex] || 'Ashwini',
+  }
+}
+
 function ShareButtons({ kundli }: { kundli: KundliData }) {
   const [sharing, setSharing] = useState(false)
   const [copied, setCopied] = useState(false)
 
+  const chartData = kundliToChartData(kundli)
+  const userInfo = { name: kundli.name, birthDate: kundli.birthDate, birthTime: kundli.birthTime, birthPlace: kundli.birthPlace }
+
   async function handleDownload() {
     setSharing(true)
     try {
-      const blob = await generateChartImage(kundli, { name: kundli.name } as any)
+      const blob = await generateChartImage(chartData, userInfo)
       if (blob) {
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
@@ -1681,7 +1696,7 @@ function ShareButtons({ kundli }: { kundli: KundliData }) {
 
   async function handleCopy() {
     try {
-      const blob = await generateChartImage(kundli, { name: kundli.name } as any)
+      const blob = await generateChartImage(chartData, userInfo)
       if (blob) {
         const ok = await copyChartToClipboard(blob)
         if (ok) { setCopied(true); setTimeout(() => setCopied(false), 2000) }
@@ -1692,7 +1707,7 @@ function ShareButtons({ kundli }: { kundli: KundliData }) {
   async function handleShare() {
     setSharing(true)
     try {
-      const blob = await generateChartImage(kundli, { name: kundli.name } as any)
+      const blob = await generateChartImage(chartData, userInfo)
       if (blob) await shareChart(blob, `${kundli.name}'s Kundli`)
     } catch { /* silent */ }
     setSharing(false)

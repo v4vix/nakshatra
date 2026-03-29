@@ -452,20 +452,20 @@ export default function Dashboard() {
               {/* Ruling planet */}
               <div className={`rounded-xl p-4 ${cosmicEnergy.bgClass} border ${cosmicEnergy.borderClass}`}>
                 <div className="text-3xl mb-2">{cosmicEnergy.symbol}</div>
-                <div className={`font-cinzel font-bold ${cosmicEnergy.colorClass}`}>{cosmicEnergy.planet} Rules Today</div>
-                <div className="text-xs text-slate-400 mt-1">{cosmicEnergy.element} Element</div>
+                <div className={`font-cinzel font-bold ${cosmicEnergy.colorClass}`}>{cosmicEnergy.planet} {t('dashboard.rulesToday')}</div>
+                <div className="text-xs text-slate-400 mt-1">{cosmicEnergy.element} {t('dashboard.element')}</div>
                 <p className="font-cormorant text-sm text-slate-300 mt-2 leading-relaxed">{cosmicEnergy.tip}</p>
               </div>
               {/* Moon phase */}
               <div className="rounded-xl p-4 bg-indigo-900/20 border border-indigo-500/20">
                 <div className="text-3xl mb-2">{moonPhase.phase}</div>
-                <div className="font-cinzel font-bold text-indigo-300">Moon Phase</div>
+                <div className="font-cinzel font-bold text-indigo-300">{t('dashboard.moonPhase')}</div>
                 <div className="text-sm font-cormorant text-slate-300 mt-2">{moonPhase.name}</div>
                 <div className="text-xs text-slate-400 mt-1">
-                  {moonPhase.name.includes('Full') ? 'Peak intuitive energy — meditate.' :
-                    moonPhase.name.includes('New') ? 'Set powerful intentions today.' :
-                      moonPhase.name.includes('Waxing') ? 'Build, grow, attract abundance.' :
-                        'Release, reflect, let go.'}
+                  {moonPhase.name.includes('Full') ? t('dashboard.moonFull') :
+                    moonPhase.name.includes('New') ? t('dashboard.moonNew') :
+                      moonPhase.name.includes('Waxing') ? t('dashboard.moonWaxing') :
+                        t('dashboard.moonWaning')}
                 </div>
               </div>
               {/* Dasha or Date energy */}
@@ -473,8 +473,8 @@ export default function Dashboard() {
                 <div className="text-3xl mb-2">📅</div>
                 <div className="font-cinzel font-bold text-gold">
                   {activeKundli?.dashas?.currentMahadasha?.planet
-                    ? `${activeKundli.dashas.currentMahadasha.planet} Mahadasha`
-                    : 'Today\'s Energy'}
+                    ? `${activeKundli.dashas.currentMahadasha.planet} ${t('dashboard.mahadasha')}`
+                    : t('dashboard.todaysEnergy')}
                 </div>
                 {activeKundli?.dashas?.currentMahadasha ? (
                   <div className="text-sm font-cormorant text-slate-300 mt-2">
@@ -495,16 +495,16 @@ export default function Dashboard() {
 
         {/* ── Quick Stats ──────────────────────────────────────────── */}
         <motion.div variants={containerVariants} className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <StatCard icon={<TrendingUp size={14} />} label="XP This Week" value={weeklyXP} sub="cosmic points" />
-          <StatCard icon={<Flame size={14} />} label="Streak" value={`${user?.streakDays ?? 0}d`} sub="consecutive days" />
-          <StatCard icon={<BookOpen size={14} />} label="Readings" value={tarotReadings.length + kundlis.length} sub="total sessions" />
-          <StatCard icon={<Trophy size={14} />} label="Achievements" value={user?.achievements?.length ?? 0} sub="unlocked" />
+          <StatCard icon={<TrendingUp size={14} />} label={t('dashboard.xpThisWeek')} value={weeklyXP} sub={t('dashboard.cosmicPoints')} />
+          <StatCard icon={<Flame size={14} />} label={t('dashboard.streak')} value={`${user?.streakDays ?? 0}d`} sub={t('dashboard.consecutiveDays')} />
+          <StatCard icon={<BookOpen size={14} />} label={t('dashboard.readings')} value={tarotReadings.length + kundlis.length} sub={t('dashboard.totalSessions')} />
+          <StatCard icon={<Trophy size={14} />} label={t('dashboard.achievementsLabel')} value={user?.achievements?.length ?? 0} sub={t('dashboard.unlocked')} />
         </motion.div>
 
         {/* ── Feature Cards Grid ───────────────────────────────────── */}
         <div>
           <motion.h2 variants={itemVariants} className="font-cinzel text-sm uppercase tracking-widest text-gold/60 mb-3">
-            Explore the Cosmos
+            {t('dashboard.exploreTheCosmos')}
           </motion.h2>
           <motion.div variants={containerVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {FEATURE_CARDS.map((card) => (
@@ -537,7 +537,7 @@ export default function Dashboard() {
           {/* Daily Challenge */}
           <div>
             <motion.h2 variants={itemVariants} className="font-cinzel text-sm uppercase tracking-widest text-gold/60 mb-3">
-              Daily Challenge
+              {t('dashboard.dailyChallenge')}
             </motion.h2>
             <DailyChallengeCard challenge={challenge} date={today} />
           </div>
@@ -545,7 +545,7 @@ export default function Dashboard() {
           {/* Recent Activity */}
           <div>
             <motion.h2 variants={itemVariants} className="font-cinzel text-sm uppercase tracking-widest text-gold/60 mb-3">
-              Recent Activity
+              {t('dashboard.recentActivity')}
             </motion.h2>
             <motion.div variants={itemVariants} className="glass-card p-5 space-y-3">
               {recentActivity.map((item, i) => (
@@ -566,11 +566,11 @@ export default function Dashboard() {
               <div className="pt-2 grid grid-cols-2 gap-2">
                 <Link to="/achievements" className="flex items-center justify-center gap-2 py-2 rounded-xl bg-gold/5 border border-gold/20 text-xs font-cinzel text-gold/70 hover:bg-gold/10 transition-colors">
                   <Trophy size={12} />
-                  Achievements
+                  {t('nav.achievements')}
                 </Link>
                 <Link to="/profile" className="flex items-center justify-center gap-2 py-2 rounded-xl bg-gold/5 border border-gold/20 text-xs font-cinzel text-gold/70 hover:bg-gold/10 transition-colors">
                   <Star size={12} />
-                  Profile
+                  {t('nav.profile')}
                 </Link>
               </div>
             </motion.div>

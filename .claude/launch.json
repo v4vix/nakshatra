@@ -4,7 +4,7 @@
     {
       "name": "nakshatra-frontend",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--prefix", "nakshatra/frontend"],
+      "runtimeArgs": ["run", "dev", "--prefix", "nakshatra/frontend", "--", "--host"],
       "port": 5173
     }
   ]

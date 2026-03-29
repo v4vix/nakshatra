@@ -8,30 +8,32 @@ import {
 } from 'lucide-react'
 import { xpForLevel } from '@/store'
 import LanguageToggle from '@/components/ui/LanguageToggle'
+import { useTranslation } from '@/i18n'
+import type { TranslationKey } from '@/i18n'
 
 const navItems = [
-  { path: '/dashboard', icon: Home, label: 'Dashboard', emoji: '🏠' },
-  { path: '/kundli', icon: Star, label: 'Kundli', emoji: '⭐' },
-  { path: '/tarot', icon: Sparkles, label: 'Tarot', emoji: '🃏' },
-  { path: '/oracle', icon: MessageCircle, label: 'Oracle', emoji: '🔮' },
-  { path: '/numerology', icon: Hash, label: 'Numerology', emoji: '🔢' },
-  { path: '/vastu', icon: Compass, label: 'Vastu', emoji: '🧭' },
-  { path: '/compatibility', icon: Heart, label: 'Compatibility', emoji: '💞' },
-  { path: '/panchanga', icon: Calendar, label: 'Panchanga', emoji: '📅' },
-  { path: '/muhurta', icon: Clock, label: 'Muhurta', emoji: '⏰' },
-  { path: '/scriptures', icon: BookOpen, label: 'Scriptures', emoji: '📿' },
-  { path: '/transits', icon: Compass, label: 'Transits', emoji: '🪐' },
-  { path: '/calendar', icon: Calendar, label: 'Calendar', emoji: '📅' },
-  { path: '/remedies', icon: Flame, label: 'Remedies', emoji: '💎' },
-  { path: '/quiz', icon: Grid3X3, label: 'Quiz', emoji: '🧠' },
-  { path: '/mood-journal', icon: Heart, label: 'Mood Journal', emoji: '📓' },
-  { path: '/muhurta-alerts', icon: Clock, label: 'Muhurta Planner', emoji: '⏰' },
-  { path: '/learning', icon: BookOpen, label: 'Learning', emoji: '📚' },
-  { path: '/year-ahead', icon: Star, label: 'Year Ahead', emoji: '🔮' },
-  { path: '/video-analysis', icon: Crown, label: 'Video Analysis', emoji: '🎬' },
-  { path: '/community', icon: Users, label: 'Community', emoji: '🌐' },
-  { path: '/achievements', icon: Trophy, label: 'Achievements', emoji: '🏆' },
-  { path: '/profile', icon: User, label: 'Profile', emoji: '👤' },
+  { path: '/dashboard', icon: Home, labelKey: 'nav.dashboard' as TranslationKey, emoji: '🏠' },
+  { path: '/kundli', icon: Star, labelKey: 'nav.kundli' as TranslationKey, emoji: '⭐' },
+  { path: '/tarot', icon: Sparkles, labelKey: 'nav.tarot' as TranslationKey, emoji: '🃏' },
+  { path: '/oracle', icon: MessageCircle, labelKey: 'nav.oracle' as TranslationKey, emoji: '🔮' },
+  { path: '/numerology', icon: Hash, labelKey: 'nav.numerology' as TranslationKey, emoji: '🔢' },
+  { path: '/vastu', icon: Compass, labelKey: 'nav.vastu' as TranslationKey, emoji: '🧭' },
+  { path: '/compatibility', icon: Heart, labelKey: 'nav.compatibility' as TranslationKey, emoji: '💞' },
+  { path: '/panchanga', icon: Calendar, labelKey: 'nav.panchanga' as TranslationKey, emoji: '📅' },
+  { path: '/muhurta', icon: Clock, labelKey: 'nav.muhurta' as TranslationKey, emoji: '⏰' },
+  { path: '/scriptures', icon: BookOpen, labelKey: 'nav.scriptures' as TranslationKey, emoji: '📿' },
+  { path: '/transits', icon: Compass, labelKey: 'nav.transits' as TranslationKey, emoji: '🪐' },
+  { path: '/calendar', icon: Calendar, labelKey: 'nav.calendar' as TranslationKey, emoji: '📅' },
+  { path: '/remedies', icon: Flame, labelKey: 'nav.remedies' as TranslationKey, emoji: '💎' },
+  { path: '/quiz', icon: Grid3X3, labelKey: 'nav.quiz' as TranslationKey, emoji: '🧠' },
+  { path: '/mood-journal', icon: Heart, labelKey: 'nav.moodJournal' as TranslationKey, emoji: '📓' },
+  { path: '/muhurta-alerts', icon: Clock, labelKey: 'nav.muhurtaPlanner' as TranslationKey, emoji: '⏰' },
+  { path: '/learning', icon: BookOpen, labelKey: 'nav.learning' as TranslationKey, emoji: '📚' },
+  { path: '/year-ahead', icon: Star, labelKey: 'nav.yearAhead' as TranslationKey, emoji: '🔮' },
+  { path: '/video-analysis', icon: Crown, labelKey: 'nav.videoAnalysis' as TranslationKey, emoji: '🎬' },
+  { path: '/community', icon: Users, labelKey: 'nav.community' as TranslationKey, emoji: '🌐' },
+  { path: '/achievements', icon: Trophy, labelKey: 'nav.achievements' as TranslationKey, emoji: '🏆' },
+  { path: '/profile', icon: User, labelKey: 'nav.profile' as TranslationKey, emoji: '👤' },
 ]
 
 // Admin-only nav items — only visible to users with role 'admin'
@@ -42,6 +44,7 @@ const adminNavItems = [
 export default function Navigation() {
   const { user, sidebarOpen, setSidebarOpen } = useStore()
   const location = useLocation()
+  const { t } = useTranslation()
 
   const xpProgress = user
     ? ((user.xp - xpForLevel(user.level)) / (xpForLevel(user.level + 1) - xpForLevel(user.level))) * 100
@@ -96,7 +99,7 @@ export default function Navigation() {
               </div>
               <div>
                 <h1 className="font-cinzel text-lg font-bold text-gold-gradient">Nakshatra</h1>
-                <p className="text-xs text-slate-400 font-cormorant">Vedic Wisdom Quest</p>
+                <p className="text-xs text-slate-400 font-cormorant">{t('nav.subtitle')}</p>
               </div>
             </div>
             <LanguageToggle compact />
@@ -151,7 +154,7 @@ export default function Navigation() {
               >
                 <span className="text-base">{item.emoji}</span>
                 <span className={`font-cinzel text-sm ${isActive ? 'text-gold' : ''}`}>
-                  {item.label}
+                  {t(item.labelKey)}
                 </span>
                 {isActive && (
                   <motion.div
@@ -206,7 +209,7 @@ export default function Navigation() {
             className="flex items-center gap-2 px-3 py-2 rounded-xl bg-saffron/10 border border-saffron/20 hover:bg-saffron/20 transition-all"
           >
             <Grid3X3 size={14} className="text-saffron" />
-            <span className="text-xs font-cinzel text-saffron">Daily Rituals</span>
+            <span className="text-xs font-cinzel text-saffron">{t('nav.dailyRituals')}</span>
           </NavLink>
           <button
             onClick={() => {
@@ -216,7 +219,7 @@ export default function Navigation() {
             className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-celestial/10 border border-celestial/20 hover:bg-celestial/20 transition-all"
           >
             <Crown size={14} className="text-ethereal" />
-            <span className="text-xs font-cinzel text-ethereal">Upgrade to Pro</span>
+            <span className="text-xs font-cinzel text-ethereal">{t('nav.upgradeToPro')}</span>
           </button>
         </div>
       </motion.aside>
