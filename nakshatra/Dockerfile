@@ -7,7 +7,7 @@ FROM node:22-bookworm AS frontend-build
 WORKDIR /app/frontend
 
 COPY frontend/package*.json ./
-RUN npm ci
+RUN npm install --no-audit --no-fund
 
 COPY frontend/ ./
 RUN npm run build
@@ -16,7 +16,7 @@ RUN npm run build
 FROM node:22-bookworm AS backend-build
 WORKDIR /app/backend
 COPY backend/package*.json ./
-RUN npm ci
+RUN npm install --no-audit --no-fund
 COPY backend/ ./
 RUN npx tsc
 
@@ -27,7 +27,7 @@ WORKDIR /app
 # Copy backend dist + deps
 COPY --from=backend-build /app/backend/dist ./dist
 COPY --from=backend-build /app/backend/package*.json ./
-RUN npm ci --omit=dev
+RUN npm install --no-audit --no-fund --omit=dev
 
 # Copy built frontend into public/ (served as static files)
 COPY --from=frontend-build /app/frontend/dist ./public
