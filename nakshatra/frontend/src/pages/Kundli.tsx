@@ -1161,8 +1161,8 @@ interface BirthFormData {
   birthPlace: string
 }
 
-function CreateKundliForm({ onComplete }: { onComplete: (data: KundliData) => void }) {
-  const [form, setForm] = useState<BirthFormData>({ name: '', birthDate: '', birthTime: '', birthPlace: '' })
+function CreateKundliForm({ onComplete, initialData }: { onComplete: (data: KundliData) => void; initialData?: BirthFormData | null }) {
+  const [form, setForm] = useState<BirthFormData>(initialData ?? { name: '', birthDate: '', birthTime: '', birthPlace: '' })
   const [loading, setLoading] = useState(false)
   const [showCinematic, setShowCinematic] = useState(false)
   const [pendingData, setPendingData] = useState<KundliData | null>(null)
@@ -1728,7 +1728,7 @@ function ShareButtons({ kundli }: { kundli: KundliData }) {
   )
 }
 
-function KundliChartView({ kundli, onNew }: { kundli: KundliData; onNew: () => void }) {
+function KundliChartView({ kundli, onNew, onEdit }: { kundli: KundliData; onNew: () => void; onEdit: () => void }) {
   const [activeTab, setActiveTab] = useState<ChartTab>('Chart')
   const [chartMode, setChartMode] = useState<DivisionalChart>('D1')
 
@@ -1737,7 +1737,13 @@ function KundliChartView({ kundli, onNew }: { kundli: KundliData; onNew: () => v
       {/* Cinematic header */}
       <div className="glass-card p-5 shimmer-border">
         <ChartHeader kundli={kundli} />
-        <div className="flex justify-end mt-3">
+        <div className="flex justify-end gap-2 mt-3">
+          <button
+            onClick={onEdit}
+            className="flex items-center gap-2 text-xs font-cinzel text-gold/70 border border-gold/20 hover:border-gold/40 px-3 py-2 rounded-xl transition-colors"
+          >
+            <RefreshCw size={12} />Edit
+          </button>
           <button
             onClick={onNew}
             className="flex items-center gap-2 text-xs font-cinzel text-gold/70 border border-gold/20 hover:border-gold/40 px-3 py-2 rounded-xl transition-colors"
@@ -1879,10 +1885,11 @@ function KundliChartView({ kundli, onNew }: { kundli: KundliData; onNew: () => v
 type KundliView = 'landing' | 'create' | 'chart'
 
 export default function KundliPage() {
-  const { kundlis, addKundli, getActiveKundli, addXP } = useStore()
+  const { kundlis, addKundli, getActiveKundli, setActiveKundli, activeKundliId, addXP } = useStore()
   const activeKundli = getActiveKundli()
 
   const [view, setView] = useState<KundliView>(activeKundli ? 'chart' : 'landing')
+  const [editData, setEditData] = useState<BirthFormData | null>(null)
 
   function handleKundliComplete(data: KundliData) {
     addKundli(data)
@@ -1894,17 +1901,29 @@ export default function KundliPage() {
 
   return (
     <div className="min-h-screen px-4 py-6 sm:px-6 lg:px-8">
-      {kundlis.length > 1 && (
+      {kundlis.length > 0 && (
         <div className="max-w-4xl mx-auto mb-4">
-          <div className="flex gap-2 overflow-x-auto pb-2">
+          <div className="flex gap-2 overflow-x-auto pb-2 items-center">
             {kundlis.map(k => (
               <button
                 key={k.id}
-                className="flex-shrink-0 glass-card px-3 py-1.5 text-xs font-cinzel text-gold/70 border border-gold/20 hover:border-gold/40"
+                onClick={() => { setActiveKundli(k.id); setView('chart') }}
+                className={`flex-shrink-0 glass-card px-3 py-1.5 text-xs font-cinzel transition-all ${
+                  activeKundliId === k.id
+                    ? 'text-gold border border-gold/60 bg-gold/10'
+                    : 'text-gold/70 border border-gold/20 hover:border-gold/40'
+                }`}
               >
                 {k.name}
               </button>
             ))}
+            <button
+              onClick={() => { setEditData(null); setView('create') }}
+              className="flex-shrink-0 glass-card px-2.5 py-1.5 text-xs font-cinzel text-gold/70 border border-gold/20 hover:border-gold/40 hover:bg-gold/10 transition-all"
+              title="New Chart"
+            >
+              <Plus size={14} />
+            </button>
           </div>
         </div>
       )}
@@ -1925,14 +1944,23 @@ export default function KundliPage() {
                 <ChevronLeft size={14} /> Back
               </button>
             </div>
-            <CreateKundliForm onComplete={handleKundliComplete} />
+            <CreateKundliForm onComplete={handleKundliComplete} initialData={editData} />
           </motion.div>
         )}
         {view === 'chart' && displayKundli && (
           <motion.div key="chart" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <KundliChartView
               kundli={displayKundli}
-              onNew={() => setView('create')}
+              onNew={() => { setEditData(null); setView('create') }}
+              onEdit={() => {
+                setEditData({
+                  name: displayKundli.name,
+                  birthDate: displayKundli.birthDate,
+                  birthTime: displayKundli.birthTime,
+                  birthPlace: displayKundli.birthPlace,
+                })
+                setView('create')
+              }}
             />
           </motion.div>
         )}

@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useStore, xpForLevel, getRankForLevel } from '@/store'
 import {
@@ -19,6 +20,7 @@ import {
   Check,
   Telescope,
   Layers,
+  LogOut,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -229,7 +231,8 @@ function EditBirthModal({ onClose }: { onClose: () => void }) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function Profile() {
-  const { user, kundlis, tarotReadings } = useStore()
+  const { user, kundlis, tarotReadings, logout } = useStore()
+  const navigate = useNavigate()
   const [showEditModal, setShowEditModal] = useState(false)
 
   if (!user) {
@@ -542,6 +545,26 @@ export default function Profile() {
             © {new Date().getFullYear()} BitsizeGyaan
           </p>
         </div>
+      </motion.div>
+
+      {/* Logout */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="mt-6"
+      >
+        <button
+          onClick={() => {
+            logout()
+            navigate('/onboarding')
+            toast.success('Logged out successfully')
+          }}
+          className="w-full py-3.5 rounded-xl bg-red-500/10 border border-red-500/25 text-red-400 font-cinzel text-sm hover:bg-red-500/20 hover:border-red-500/40 transition-all duration-300 flex items-center justify-center gap-2"
+        >
+          <LogOut className="w-4 h-4" />
+          Logout
+        </button>
       </motion.div>
 
       {/* Edit Modal */}

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useStore } from '@/store'
 import {
@@ -10,8 +10,14 @@ import {
   Star,
   Award,
   RotateCcw,
+  Search,
+  MessageCircle,
+  Loader2,
+  Send,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
+
+const API_BASE = import.meta.env.VITE_API_URL || '/api/v1'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -332,6 +338,75 @@ export default function Scriptures() {
   const [answersCorrect, setAnswersCorrect] = useState<boolean[]>([])
   const [quizComplete, setQuizComplete] = useState(false)
   const [totalQuizXP, setTotalQuizXP] = useState(0)
+
+  // Backend shlokas state
+  const [backendShlokas, setBackendShlokas] = useState<any[]>([])
+  const [shlokasLoading, setShlokasLoading] = useState(false)
+  const [shlokasLoaded, setShlokasLoaded] = useState(false)
+  const [shlokaSearch, setShlokaSearch] = useState('')
+
+  // Ask a question state
+  const [askQuestion, setAskQuestion] = useState('')
+  const [askAnswer, setAskAnswer] = useState<{ content: string; provider: string } | null>(null)
+  const [askLoading, setAskLoading] = useState(false)
+  const [askRelatedShloka, setAskRelatedShloka] = useState<any>(null)
+
+  const fetchAllShlokas = useCallback(async () => {
+    if (shlokasLoaded) return
+    setShlokasLoading(true)
+    try {
+      const res = await fetch(`${API_BASE}/scripture/all`)
+      const data = await res.json()
+      if (data.success && data.shlokas) {
+        setBackendShlokas(data.shlokas)
+        setShlokasLoaded(true)
+      }
+    } catch (err) {
+      console.error('Failed to fetch shlokas:', err)
+      toast.error('Could not load shlokas from server')
+    } finally {
+      setShlokasLoading(false)
+    }
+  }, [shlokasLoaded])
+
+  const handleAskQuestion = useCallback(async () => {
+    if (!askQuestion.trim() || askQuestion.trim().length < 3) return
+    setAskLoading(true)
+    setAskAnswer(null)
+    setAskRelatedShloka(null)
+    try {
+      const res = await fetch(`${API_BASE}/scripture/ask`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: askQuestion.trim() }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setAskAnswer(data.response)
+        setAskRelatedShloka(data.relatedShloka ?? null)
+        addXP(5, 'scripture_ask')
+      } else {
+        toast.error(data.error || 'Failed to get answer')
+      }
+    } catch (err) {
+      console.error('Scripture ask failed:', err)
+      toast.error('Could not reach the scripture service')
+    } finally {
+      setAskLoading(false)
+    }
+  }, [askQuestion, addXP])
+
+  const filteredShlokas = useMemo(() => {
+    if (!shlokaSearch.trim()) return backendShlokas
+    const q = shlokaSearch.toLowerCase()
+    return backendShlokas.filter(
+      (s: any) =>
+        s.source?.toLowerCase().includes(q) ||
+        s.translation?.toLowerCase().includes(q) ||
+        s.sanskrit?.includes(shlokaSearch) ||
+        s.transliteration?.toLowerCase().includes(q)
+    )
+  }, [backendShlokas, shlokaSearch])
 
   const dailyVerse = useMemo(() => getDailyVerse(), [])
 
@@ -848,6 +923,148 @@ export default function Scriptures() {
               <RotateCcw className="w-4 h-4" /> Try Again Tomorrow
             </button>
           </motion.div>
+        )}
+      </motion.div>
+
+      {/* Ask a Question About Scriptures */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="glass-card rounded-2xl p-6 mb-8"
+      >
+        <div className="flex items-center gap-2 mb-4">
+          <MessageCircle className="w-5 h-5 text-celestial" />
+          <h2 className="text-lg font-cinzel text-champagne">Ask About Scriptures</h2>
+        </div>
+        <p className="text-xs text-white/40 font-cormorant mb-4">
+          Ask any question about the Bhagavad Gita, Upanishads, Vedas, or Yoga philosophy.
+        </p>
+        <div className="flex gap-2 mb-4">
+          <input
+            type="text"
+            value={askQuestion}
+            onChange={e => setAskQuestion(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleAskQuestion()}
+            placeholder="e.g., What is the meaning of dharma?"
+            className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-cormorant placeholder:text-white/25 focus:outline-none focus:border-celestial/40"
+          />
+          <button
+            onClick={handleAskQuestion}
+            disabled={askLoading || askQuestion.trim().length < 3}
+            className="px-4 py-2.5 rounded-xl bg-celestial/20 border border-celestial/30 text-celestial hover:bg-celestial/30 transition-all disabled:opacity-30"
+          >
+            {askLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          </button>
+        </div>
+
+        <AnimatePresence>
+          {askAnswer && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="p-4 rounded-xl bg-celestial/5 border border-celestial/15 mb-3">
+                <div className="text-xs text-celestial/60 font-cinzel uppercase tracking-wider mb-2">Answer</div>
+                <p className="text-sm text-white/70 font-cormorant leading-relaxed whitespace-pre-wrap">
+                  {askAnswer.content}
+                </p>
+              </div>
+              {askRelatedShloka && (
+                <div className="p-3 rounded-xl bg-saffron/5 border border-saffron/15">
+                  <div className="text-xs text-saffron/60 font-cinzel uppercase tracking-wider mb-1">Related Shloka</div>
+                  {askRelatedShloka.source && (
+                    <div className="text-xs text-white/40 font-cormorant mb-1">{askRelatedShloka.source}</div>
+                  )}
+                  {askRelatedShloka.sanskrit && (
+                    <p className="text-sm font-devanagari text-champagne/80 mb-1">{askRelatedShloka.sanskrit}</p>
+                  )}
+                  {askRelatedShloka.translation && (
+                    <p className="text-xs text-white/50 font-cormorant italic">{askRelatedShloka.translation}</p>
+                  )}
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+
+      {/* Browse All Shlokas from Backend */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="glass-card rounded-2xl p-6"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Search className="w-5 h-5 text-saffron" />
+            <h2 className="text-lg font-cinzel text-champagne">Browse All Shlokas</h2>
+          </div>
+          {!shlokasLoaded && (
+            <button
+              onClick={fetchAllShlokas}
+              disabled={shlokasLoading}
+              className="px-4 py-2 rounded-xl bg-saffron/20 border border-saffron/30 text-saffron text-xs font-cinzel hover:bg-saffron/30 transition-all disabled:opacity-50"
+            >
+              {shlokasLoading ? (
+                <span className="flex items-center gap-2"><Loader2 className="w-3 h-3 animate-spin" /> Loading...</span>
+              ) : (
+                'Load from Server'
+              )}
+            </button>
+          )}
+        </div>
+
+        {shlokasLoaded && (
+          <>
+            <div className="mb-4">
+              <input
+                type="text"
+                value={shlokaSearch}
+                onChange={e => setShlokaSearch(e.target.value)}
+                placeholder="Search shlokas by source, text, or translation..."
+                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-cormorant placeholder:text-white/25 focus:outline-none focus:border-saffron/40"
+              />
+            </div>
+            <div className="text-xs text-white/30 font-cormorant mb-3">
+              {filteredShlokas.length} shloka{filteredShlokas.length !== 1 ? 's' : ''} found
+            </div>
+            <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+              {filteredShlokas.map((shloka: any, i: number) => (
+                <div
+                  key={shloka.id || i}
+                  className="p-4 rounded-xl border border-white/5 hover:border-saffron/20 transition-all bg-white/[0.02]"
+                >
+                  {shloka.source && (
+                    <div className="text-xs text-saffron font-cinzel mb-2">{shloka.source}</div>
+                  )}
+                  {shloka.sanskrit && (
+                    <p className="text-base font-devanagari text-champagne/90 leading-relaxed mb-2">{shloka.sanskrit}</p>
+                  )}
+                  {shloka.transliteration && (
+                    <p className="text-xs text-white/40 italic font-cormorant mb-2">{shloka.transliteration}</p>
+                  )}
+                  {shloka.translation && (
+                    <p className="text-sm text-white/60 font-cormorant leading-relaxed">{shloka.translation}</p>
+                  )}
+                  {shloka.commentary && (
+                    <div className="mt-2 pt-2 border-t border-white/5">
+                      <p className="text-xs text-white/40 font-cormorant leading-relaxed">{shloka.commentary}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {!shlokasLoaded && !shlokasLoading && (
+          <p className="text-center text-white/30 text-sm font-cormorant py-6">
+            Click "Load from Server" to browse the complete shloka collection from the backend.
+          </p>
         )}
       </motion.div>
     </div>

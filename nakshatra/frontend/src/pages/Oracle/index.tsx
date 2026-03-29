@@ -388,37 +388,33 @@ As Shani's sign, Kumbha natives often work hard and patiently for long-term gain
 *"The Aquarian pours wisdom from their vessel not for themselves, but for all of humanity."*`
   }
 
-  // Default response
-  return `The cosmos speaks in mysterious ways, and I am here to illuminate your path.
+  // Default response — acknowledge the question and provide guidance
+  return `Thank you for your question about "${message.length > 60 ? message.slice(0, 60) + '...' : message}."
 
-Please ask me about any of these sacred domains:
+The cosmos holds wisdom on this matter. While I have deep knowledge in specific Vedic sciences, let me share what resonates:
 
-**Jyotisha (Vedic Astrology)**
-• Your Lagna (ascendant) and its meaning
-• Planetary Dashas and their timing
-• Nakshatras (lunar mansions)
-• Yogas (planetary combinations)
-• Specific planets like Mercury, Jupiter, Saturn
+Every question we ask the universe reflects an inner seeking. The Vedic tradition teaches that **true knowledge arises from sincere inquiry** — and your curiosity itself is a powerful force.
 
-**Divination Arts**
-• Tarot card interpretations (Major & Minor Arcana)
-• Numerology and your Life Path number
-• Lucky numbers and their significance
+Here are some related areas I can explore in depth for you:
 
-**Sacred Sciences**
-• Vastu Shastra and your living spaces
-• Bhagavad Gita and Upanishad verses
-• Specific Yogas like Gaja Kesari
+**Jyotisha (Vedic Astrology)** — Lagna, Dashas, Nakshatras, Yogas, planetary influences
+**Divination Arts** — Tarot interpretations, Numerology, Life Path numbers
+**Sacred Sciences** — Vastu Shastra, Bhagavad Gita, Upanishad teachings
 
-**Sample Questions:**
-*"What does my Lagna in Kumbha mean?"*
-*"Interpret the 9 of Swords tarot card"*
-*"Give me Bhagavad Gita 2:47"*
-*"What is Gaja Kesari Yoga?"*
+Try refining your question with a specific topic, for example:
+*"What does my Lagna mean?"* · *"Interpret the 9 of Swords"* · *"Explain Gaja Kesari Yoga"*
 
 ॥ तमसो मा ज्योतिर्गमय ॥
 *"Lead me from darkness into light."* — Brihadaranyaka Upanishad`
 }
+
+// ─── Strip developer-facing messages from responses ─────────────────────────
+
+const cleanResponse = (text: string) => text
+  .replace(/For a deeper interpretation.*?richer analysis\.?/gi, '')
+  .replace(/consider running.*?ollama.*?\./gi, '')
+  .replace(/\n{3,}/g, '\n\n')
+  .trim()
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -794,7 +790,7 @@ export default function OraclePage() {
                 streamedText += event.text
                 setMessages((prev) =>
                   prev.map((m) =>
-                    m.id === oracleId ? { ...m, content: streamedText } : m
+                    m.id === oracleId ? { ...m, content: cleanResponse(streamedText) } : m
                   )
                 )
               }
@@ -819,7 +815,7 @@ export default function OraclePage() {
         if (streamedText) {
           setMessages((prev) =>
             prev.map((m) =>
-              m.id === oracleId ? { ...m, content: streamedText, isStreaming: false } : m
+              m.id === oracleId ? { ...m, content: cleanResponse(streamedText), isStreaming: false } : m
             )
           )
         }
@@ -855,7 +851,7 @@ export default function OraclePage() {
       setMessages((prev) => [...prev, {
         id: oracleId,
         role: 'oracle' as const,
-        content: finalResponse,
+        content: cleanResponse(finalResponse),
         timestamp: new Date(),
         isStreaming: true,
       }].slice(-50))

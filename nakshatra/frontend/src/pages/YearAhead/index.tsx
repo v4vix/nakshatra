@@ -7,6 +7,7 @@ import { RASHI_DATA, NAKSHATRA_NAMES, DASHA_YEARS, DASHA_SEQUENCE } from '@/lib/
 import {
   ArrowLeft, TrendingUp, Heart, Briefcase, Brain, Star, Shield, Calendar,
   Moon, Sun, Plane, Users, Sparkles, AlertTriangle, ChevronDown, ChevronUp,
+  Zap, Target,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
@@ -468,6 +469,136 @@ function getDashaContext(
   }
 }
 
+// ─── Key Planetary Events for the Year ──────────────────────────────────────
+
+interface KeyPlanetaryEvent {
+  date: string
+  planet: string
+  event: string
+  impact: 'positive' | 'neutral' | 'challenging'
+  description: string
+}
+
+function generateKeyEvents(rashiIndex: number, currentYear: number): KeyPlanetaryEvent[] {
+  const events: KeyPlanetaryEvent[] = []
+  const MONTH_NAMES_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+  // Scan each month boundary for major planetary sign changes and retrogrades
+  for (let m = 0; m < 12; m++) {
+    const midMonth = new Date(currentYear, m, 15)
+    const nextMidMonth = new Date(currentYear, m + 1, 15)
+    const currentTransitsData = getCurrentTransits(midMonth)
+    const nextTransitsData = getCurrentTransits(nextMidMonth)
+
+    const majorPlanets = ['Jupiter', 'Saturn', 'Mars', 'Venus', 'Mercury']
+    for (const planet of majorPlanets) {
+      const cur = currentTransitsData.find(t => t.planet === planet)
+      const next = nextTransitsData.find(t => t.planet === planet)
+      if (!cur || !next) continue
+
+      // Sign change
+      if (cur.rashi !== next.rashi) {
+        const fromHouse = ((RASHI_DATA.findIndex(r => r.name === cur.rashi) - rashiIndex + 12) % 12) + 1
+        const toHouse = ((RASHI_DATA.findIndex(r => r.name === next.rashi) - rashiIndex + 12) % 12) + 1
+        const goodHouses = [1, 2, 5, 7, 9, 11]
+        const impact: KeyPlanetaryEvent['impact'] = goodHouses.includes(toHouse) ? 'positive' : [6, 8, 12].includes(toHouse) ? 'challenging' : 'neutral'
+
+        events.push({
+          date: `${MONTH_NAMES_SHORT[m]}`,
+          planet,
+          event: `${planet} enters ${next.rashi}`,
+          impact,
+          description: `${planet} moves from your ${fromHouse}th house to ${toHouse}th house. ${impact === 'positive' ? 'Favorable placement.' : impact === 'challenging' ? 'Requires caution.' : 'Mixed results.'}`,
+        })
+      }
+
+      // Retrograde transitions
+      if (cur.isRetrograde !== next.isRetrograde) {
+        events.push({
+          date: `${MONTH_NAMES_SHORT[m]}`,
+          planet,
+          event: `${planet} turns ${next.isRetrograde ? 'retrograde' : 'direct'}`,
+          impact: next.isRetrograde ? 'challenging' : 'positive',
+          description: next.isRetrograde
+            ? `${planet} retrograde slows related matters. Review, revise, and reflect.`
+            : `${planet} resumes direct motion. Stalled matters begin to move forward.`,
+        })
+      }
+    }
+  }
+
+  // Sort by month and limit
+  return events.slice(0, 15)
+}
+
+// ─── Annual Transit Summary ─────────────────────────────────────────────────
+
+interface AnnualPlanetSummary {
+  planet: string
+  glyph: string
+  color: string
+  signsCovered: string[]
+  housesVisited: number[]
+  retroPeriods: string[]
+  overallImpact: 'highly favorable' | 'favorable' | 'neutral' | 'challenging'
+  yearSummary: string
+}
+
+function generateAnnualTransitSummary(rashiIndex: number, currentYear: number): AnnualPlanetSummary[] {
+  const PLANET_GLYPHS: Record<string, string> = { Jupiter: '♃', Saturn: '♄', Mars: '♂', Venus: '♀', Mercury: '☿' }
+  const PLANET_COLORS: Record<string, string> = { Jupiter: '#FFD700', Saturn: '#4169E1', Mars: '#FF4444', Venus: '#FF69B4', Mercury: '#32CD32' }
+
+  return ['Jupiter', 'Saturn', 'Mars', 'Venus', 'Mercury'].map(planet => {
+    const signSet = new Set<string>()
+    const houseSet = new Set<number>()
+    const retroMonths: string[] = []
+    let favorableMonths = 0
+
+    const MONTH_NAMES_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+    for (let m = 0; m < 12; m++) {
+      const midMonth = new Date(currentYear, m, 15)
+      const transitsData = getCurrentTransits(midMonth)
+      const pt = transitsData.find(t => t.planet === planet)
+      if (!pt) continue
+
+      signSet.add(pt.rashi)
+      const house = ((RASHI_DATA.findIndex(r => r.name === pt.rashi) - rashiIndex + 12) % 12) + 1
+      houseSet.add(house)
+
+      if (pt.isRetrograde) retroMonths.push(MONTH_NAMES_SHORT[m])
+
+      const goodHouses = planet === 'Saturn' ? [3, 6, 11] : [1, 2, 5, 7, 9, 11]
+      if (goodHouses.includes(house)) favorableMonths++
+    }
+
+    const favorableRatio = favorableMonths / 12
+    const overallImpact: AnnualPlanetSummary['overallImpact'] =
+      favorableRatio >= 0.7 ? 'highly favorable' :
+      favorableRatio >= 0.5 ? 'favorable' :
+      favorableRatio >= 0.3 ? 'neutral' : 'challenging'
+
+    const summaryMap: Record<string, string> = {
+      Jupiter: `Jupiter transits through ${Array.from(signSet).join(' and ')} this year, visiting your ${Array.from(houseSet).map(h => h + 'th').join(', ')} house(s). As the planet of wisdom and expansion, its placement ${overallImpact === 'highly favorable' || overallImpact === 'favorable' ? 'brings growth opportunities and blessings' : 'requires patience and strategic planning'}.`,
+      Saturn: `Saturn moves through ${Array.from(signSet).join(' and ')}, influencing your ${Array.from(houseSet).map(h => h + 'th').join(', ')} house(s). Saturn's transit ${overallImpact === 'favorable' || overallImpact === 'highly favorable' ? 'rewards discipline and hard work' : 'tests resilience and demands structure'}.`,
+      Mars: `Mars energizes ${Array.from(signSet).join(', ')} this year, activating your ${Array.from(houseSet).map(h => h + 'th').join(', ')} house(s). This ${overallImpact === 'favorable' ? 'fuels ambition and achievement' : 'requires channeling energy constructively'}.`,
+      Venus: `Venus graces ${Array.from(signSet).join(', ')}, touching your ${Array.from(houseSet).map(h => h + 'th').join(', ')} house(s). Love, beauty, and material comforts are ${overallImpact === 'favorable' || overallImpact === 'highly favorable' ? 'enhanced' : 'tested for authenticity'}.`,
+      Mercury: `Mercury transits multiple signs including ${Array.from(signSet).slice(0, 3).join(', ')}, passing through your ${Array.from(houseSet).map(h => h + 'th').join(', ')} house(s). Communication and commerce are ${overallImpact === 'favorable' ? 'favored' : 'requiring extra attention to detail'}.`,
+    }
+
+    return {
+      planet,
+      glyph: PLANET_GLYPHS[planet] || '',
+      color: PLANET_COLORS[planet] || '#FFF',
+      signsCovered: Array.from(signSet),
+      housesVisited: Array.from(houseSet).sort((a, b) => a - b),
+      retroPeriods: retroMonths,
+      overallImpact,
+      yearSummary: summaryMap[planet] || '',
+    }
+  })
+}
+
 // ─── Favorability Badge ─────────────────────────────────────────────────────
 
 function FavorabilityBadge({ favorability }: { favorability: MonthlyTransit['favorability'] }) {
@@ -570,6 +701,8 @@ export default function YearAheadPage() {
   const monthlyTransits = useMemo(() => generateMonthlyTransits(rashiIndex, currentYear), [rashiIndex, currentYear])
   const luckyFactors = useMemo(() => getLuckyFactors(varshfal.yearLord), [varshfal.yearLord])
   const dashaInfo = useMemo(() => getDashaContext(activeKundli?.dashas ?? null, rashiIndex), [activeKundli, rashiIndex])
+  const keyEvents = useMemo(() => generateKeyEvents(rashiIndex, currentYear), [rashiIndex, currentYear])
+  const annualTransitSummary = useMemo(() => generateAnnualTransitSummary(rashiIndex, currentYear), [rashiIndex, currentYear])
 
   const currentMonth = new Date().getMonth()
 
@@ -738,6 +871,90 @@ export default function YearAheadPage() {
             <p className="text-gold/50 text-[10px] uppercase tracking-wider mb-1">Ruling Deity</p>
             <p className="text-white/80 text-sm font-cormorant">{luckyFactors.deity}</p>
           </div>
+        </div>
+      </CollapsibleSection>
+
+      {/* Key Planetary Events */}
+      {keyEvents.length > 0 && (
+        <CollapsibleSection title={`Key Planetary Events of ${currentYear}`} icon={<Zap size={16} />} defaultOpen={true} accentColor="saffron">
+          <div className="relative pl-5 border-l-2 border-white/10 space-y-3 ml-1">
+            {keyEvents.map((evt, i) => (
+              <motion.div
+                key={`${evt.planet}-${evt.date}-${i}`}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.04 }}
+                className="relative"
+              >
+                <div
+                  className={`absolute -left-[23px] w-2.5 h-2.5 rounded-full border-2 ${
+                    evt.impact === 'positive' ? 'border-green-400 bg-green-400/30' :
+                    evt.impact === 'challenging' ? 'border-red-400 bg-red-400/30' :
+                    'border-yellow-400 bg-yellow-400/30'
+                  }`}
+                />
+                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-cinzel text-white/60">{evt.date}</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                      evt.impact === 'positive' ? 'bg-green-500/15 text-green-400 border border-green-500/20' :
+                      evt.impact === 'challenging' ? 'bg-red-500/15 text-red-400 border border-red-500/20' :
+                      'bg-yellow-500/15 text-yellow-400 border border-yellow-500/20'
+                    }`}>
+                      {evt.impact}
+                    </span>
+                  </div>
+                  <p className="text-white/80 text-sm font-cinzel mb-1">{evt.event}</p>
+                  <p className="text-white/40 text-xs font-cormorant leading-relaxed">{evt.description}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* Annual Transit Overview */}
+      <CollapsibleSection title="Annual Planetary Overview" icon={<Target size={16} />} accentColor="celestial">
+        <div className="space-y-3">
+          {annualTransitSummary.map((ps, i) => (
+            <motion.div
+              key={ps.planet}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.06 }}
+              className="p-4 rounded-xl border border-white/10 bg-white/[0.02]"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg" style={{ color: ps.color }}>{ps.glyph}</span>
+                  <h3 className="text-white font-cinzel font-medium text-sm">{ps.planet}</h3>
+                </div>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium border ${
+                  ps.overallImpact === 'highly favorable' ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' :
+                  ps.overallImpact === 'favorable' ? 'bg-green-500/15 border-green-500/30 text-green-400' :
+                  ps.overallImpact === 'challenging' ? 'bg-red-500/15 border-red-500/30 text-red-400' :
+                  'bg-yellow-500/15 border-yellow-500/30 text-yellow-400'
+                }`}>
+                  {ps.overallImpact}
+                </span>
+              </div>
+              <p className="text-white/50 text-xs font-cormorant leading-relaxed mb-2">{ps.yearSummary}</p>
+              <div className="flex flex-wrap gap-2">
+                <div className="flex items-center gap-1 text-[10px] text-white/40">
+                  <span className="text-white/20">Signs:</span>
+                  {ps.signsCovered.map(s => (
+                    <span key={s} className="px-1.5 py-0.5 rounded bg-white/5 text-white/50">{s}</span>
+                  ))}
+                </div>
+                {ps.retroPeriods.length > 0 && (
+                  <div className="flex items-center gap-1 text-[10px] text-red-400/60">
+                    <span>Rx:</span>
+                    <span>{ps.retroPeriods.join(', ')}</span>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          ))}
         </div>
       </CollapsibleSection>
 

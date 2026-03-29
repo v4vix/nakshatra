@@ -92,15 +92,16 @@ function PlanetModal({ planet, onClose }: { planet: PlanetTransit; onClose: () =
 
 export default function TransitsPage() {
   const { t } = useTranslation()
-  const { user } = useStore()
+  const { kundlis, activeKundliId, setActiveKundli, getActiveKundli } = useStore()
   const [selectedPlanet, setSelectedPlanet] = useState<PlanetTransit | null>(null)
   const [tab, setTab] = useState<'current' | 'natal' | 'upcoming'>('current')
 
   const transits = useMemo(() => getCurrentTransits(), [])
   const upcomingEvents = useMemo(() => getUpcomingTransits(30), [])
 
-  // Use ascendant from active kundli if available
-  const ascendantIndex = user?.birthDate ? 0 : 0 // fallback to Aries
+  // Use ascendant from selected kundli
+  const activeKundli = getActiveKundli()
+  const ascendantIndex = activeKundli?.ascendant.rashiIndex ?? 0
   const natalTransits = useMemo(
     () => getTransitToNatal(transits, ascendantIndex),
     [transits, ascendantIndex]
@@ -113,13 +114,34 @@ export default function TransitsPage() {
         <Link to="/dashboard" className="p-2 rounded-full hover:bg-white/10">
           <ArrowLeft size={20} className="text-white/60" />
         </Link>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-cinzel text-white">Planetary Transits</h1>
           <p className="text-sm text-white/40">
             {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
           </p>
         </div>
       </div>
+
+      {/* Kundli Selector */}
+      {kundlis.length > 0 && (
+        <div className="mb-5">
+          <label className="block text-xs text-white/40 uppercase tracking-wider font-cinzel mb-2">
+            Transit effects for
+          </label>
+          <select
+            value={activeKundliId ?? ''}
+            onChange={e => setActiveKundli(e.target.value)}
+            className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-cormorant appearance-none focus:outline-none focus:border-amber-500/40"
+            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='rgba(255,255,255,0.4)' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
+          >
+            {kundlis.map(k => (
+              <option key={k.id} value={k.id} className="bg-slate-900 text-white">
+                {k.name} — {RASHI_DATA[k.ascendant.rashiIndex]?.name} Lagna
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Tab Bar */}
       <div className="flex gap-1 p-1 mb-6 rounded-xl bg-white/5 border border-white/10">

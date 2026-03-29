@@ -141,7 +141,7 @@ function getSanskritDate(): string {
     'Shravana', 'Bhadrapada', 'Ashvina', 'Kartika', 'Margashirsha', 'Pushya',
   ]
   const today = new Date()
-  return `${months[today.getMonth()]} ${today.getDate()}, ${today.getFullYear() - 57} Vikram Samvat`
+  return `${months[today.getMonth()]} ${today.getDate()}, ${today.getFullYear() + 57} Vikram Samvat`
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────

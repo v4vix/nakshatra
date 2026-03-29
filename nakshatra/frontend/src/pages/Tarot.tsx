@@ -871,17 +871,23 @@ function SpreadView({ spread, date, onBack, onComplete }: SpreadViewProps) {
         </motion.div>
       )}
 
-      {/* Flip All button */}
-      {!allFlipped && flipped.size < cards.length && (
-        <div className="flex justify-center">
+      {/* Flip All / Reshuffle buttons */}
+      <div className="flex justify-center gap-3">
+        {!allFlipped && flipped.size < cards.length && (
           <button
             onClick={flipAll}
             className="flex items-center gap-2 bg-stardust/40 border border-stardust/60 text-slate-300 font-cinzel text-xs px-4 py-2 rounded-full hover:border-gold/40 hover:text-gold transition-all"
           >
             <Layers size={12} /> Flip All Cards
           </button>
-        </div>
-      )}
+        )}
+        <button
+          onClick={() => { setCards(getSpreadCards(spread)); setFlipped(new Set()); setInterpretation(''); setShowInterpSection(false) }}
+          className="flex items-center gap-2 bg-stardust/40 border border-stardust/60 text-slate-300 font-cinzel text-xs px-4 py-2 rounded-full hover:border-gold/40 hover:text-gold transition-all"
+        >
+          <RefreshCw size={12} /> Reshuffle
+        </button>
+      </div>
 
       {/* Spread layout */}
       <div className="glass-card p-4 sm:p-6">

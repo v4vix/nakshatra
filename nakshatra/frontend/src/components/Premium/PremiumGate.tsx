@@ -10,6 +10,7 @@ interface PremiumGateProps {
   children: React.ReactNode
   previewLines?: number
   requiredPlan?: PlanId
+  allowFreeContinue?: boolean
 }
 
 const FEATURE_BENEFITS: Record<string, string> = {
@@ -34,12 +35,14 @@ export default function PremiumGate({
   children,
   previewLines,
   requiredPlan = 'pro',
+  allowFreeContinue = false,
 }: PremiumGateProps) {
   const [showModal, setShowModal] = useState(false)
+  const [dismissed, setDismissed] = useState(false)
   const isPremium = hasPlan(requiredPlan)
 
-  // If premium, render children directly with no gate
-  if (isPremium) {
+  // If premium or user dismissed the gate, render children directly
+  if (isPremium || dismissed) {
     return <>{children}</>
   }
 
@@ -123,7 +126,7 @@ export default function PremiumGate({
             </motion.button>
 
             <button
-              onClick={() => {}}
+              onClick={() => setDismissed(true)}
               className="text-xs font-cormorant text-white/25 hover:text-white/50 transition-colors underline underline-offset-2"
             >
               Continue for Free
