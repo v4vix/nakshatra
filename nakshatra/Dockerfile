@@ -37,7 +37,8 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget -qO- http://localhost:${PORT:-3001}/health || exit 1
 
 # Non-root user for security
-RUN addgroup -g 1001 -S nakshatra && adduser -S nakshatra -u 1001
+RUN addgroup -S -g 1001 nakshatra \
+ && adduser -S -D -H -u 1001 -G nakshatra nakshatra
 USER nakshatra
 
 ENV NODE_ENV=production
