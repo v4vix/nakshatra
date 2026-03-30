@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useStore, initializeUser } from '@/store'
+import { useAuthStore } from '@/store/authStore'
 import StarfieldCanvas from '@/components/layout/StarfieldCanvas'
 import Navigation from '@/components/layout/Navigation'
 import BottomNav from '@/components/ui/BottomNav'
@@ -13,6 +14,8 @@ import { initAnalytics } from '@/lib/analytics'
 
 // Pages (lazy imports for performance)
 import { lazy, Suspense } from 'react'
+const LoginPage = lazy(() => import('@/pages/Auth/Login'))
+const RegisterPage = lazy(() => import('@/pages/Auth/Register'))
 const Onboarding = lazy(() => import('@/pages/Onboarding'))
 const Dashboard = lazy(() => import('@/pages/Dashboard'))
 const KundliPage = lazy(() => import('@/pages/Kundli'))
@@ -38,6 +41,8 @@ const MuhurtaAlertsPage = lazy(() => import('@/pages/MuhurtaAlerts'))
 const LearningPage = lazy(() => import('@/pages/Learning'))
 const YearAheadPage = lazy(() => import('@/pages/YearAhead'))
 const VideoAnalysisPage = lazy(() => import('@/pages/VideoAnalysis'))
+const AdminPage = lazy(() => import('@/pages/Admin'))
+const SharedCardPage = lazy(() => import('@/pages/SharedCard'))
 const PrivacyPolicyPage = lazy(() => import('@/pages/Legal/PrivacyPolicy'))
 const TermsOfServicePage = lazy(() => import('@/pages/Legal/TermsOfService'))
 
@@ -74,37 +79,89 @@ function AppLayout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  const { isOnboarded, user, updateStreak } = useStore()
+  const { user: localUser, updateStreak } = useStore()
+  const { isAuthenticated, isLoading: authLoading, user: authUser, fetchMe } = useAuthStore()
 
+  // Check server session on mount
   useEffect(() => {
-    if (!user) {
-      initializeUser()
-    }
-    updateStreak()
-  }, [user, updateStreak])
+    fetchMe()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Native platform initialization (Capacitor + RevenueCat)
+  // Sync auth user to local store for backward compat
+  useEffect(() => {
+    if (authUser) {
+      initializeUser({
+        id: authUser.id,
+        username: authUser.username,
+        email: authUser.email,
+        fullName: authUser.fullName,
+        avatar: authUser.avatar,
+        birthDate: authUser.birthDate,
+        birthTime: authUser.birthTime,
+        birthPlace: authUser.birthPlace,
+        birthLat: authUser.birthLat,
+        birthLon: authUser.birthLon,
+        level: authUser.level,
+        xp: authUser.xp,
+        role: authUser.role,
+        onboardingComplete: authUser.onboardingComplete,
+        achievements: authUser.achievements || [],
+        streakDays: authUser.streakDays || 0,
+        longestStreak: authUser.longestStreak || 0,
+      })
+      updateStreak()
+    }
+  }, [authUser]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Native platform initialization
   useEffect(() => {
     setStatusBarStyle()
     hideSplashScreen()
     registerBackButton()
-    initPurchases(user?.id)
+    initPurchases(authUser?.id || localUser?.id)
     initAnalytics()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Show loader while checking auth
+  if (authLoading) {
+    return <CosmicLoader />
+  }
+
+  const isOnboarded = authUser?.onboardingComplete ?? false
 
   return (
     <CosmicErrorBoundary>
       <AnimatePresence mode="wait">
         <Suspense fallback={<CosmicLoader />}>
           <Routes>
+            {/* Public routes */}
+            <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
+            <Route path="/register" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <RegisterPage />} />
+            <Route path="/s/:slug" element={<SharedCardPage />} />
+            <Route path="/privacy" element={<PrivacyPolicyPage />} />
+            <Route path="/terms" element={<TermsOfServicePage />} />
+
+            {/* Root redirect */}
             <Route
               path="/"
-              element={<Navigate to={isOnboarded ? '/dashboard' : '/onboarding'} replace />}
+              element={
+                !isAuthenticated
+                  ? <Navigate to="/login" replace />
+                  : !isOnboarded
+                    ? <Navigate to="/onboarding" replace />
+                    : <Navigate to="/dashboard" replace />
+              }
             />
 
-            <Route path="/onboarding" element={<Onboarding />} />
+            {/* Onboarding — requires auth but not onboarding */}
+            <Route
+              path="/onboarding"
+              element={
+                !isAuthenticated ? <Navigate to="/login" replace /> : <Onboarding />
+              }
+            />
 
-            {/* Main app routes */}
+            {/* Main app routes — require auth */}
             {[
               { path: '/dashboard', Component: Dashboard },
               { path: '/kundli/*', Component: KundliPage },
@@ -134,34 +191,52 @@ export default function App() {
                 key={path}
                 path={path}
                 element={
-                  <AppLayout>
-                    <PageTransition>
-                      <Component />
-                    </PageTransition>
-                  </AppLayout>
+                  !isAuthenticated ? (
+                    <Navigate to="/login" replace />
+                  ) : (
+                    <AppLayout>
+                      <PageTransition>
+                        <Component />
+                      </PageTransition>
+                    </AppLayout>
+                  )
                 }
               />
             ))}
 
-            {/* Admin-only routes */}
+            {/* Admin routes */}
+            <Route
+              path="/admin"
+              element={
+                !isAuthenticated ? (
+                  <Navigate to="/login" replace />
+                ) : authUser?.role !== 'admin' ? (
+                  <Navigate to="/dashboard" replace />
+                ) : (
+                  <AppLayout>
+                    <PageTransition>
+                      <AdminPage />
+                    </PageTransition>
+                  </AppLayout>
+                )
+              }
+            />
             <Route
               path="/knowledge"
               element={
-                user?.role === 'admin' ? (
+                !isAuthenticated ? (
+                  <Navigate to="/login" replace />
+                ) : authUser?.role !== 'admin' ? (
+                  <Navigate to="/dashboard" replace />
+                ) : (
                   <AppLayout>
                     <PageTransition>
                       <KnowledgeBasePage />
                     </PageTransition>
                   </AppLayout>
-                ) : (
-                  <Navigate to="/dashboard" replace />
                 )
               }
             />
-
-            {/* Legal pages — public, no layout wrapper */}
-            <Route path="/privacy" element={<PrivacyPolicyPage />} />
-            <Route path="/terms" element={<TermsOfServicePage />} />
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

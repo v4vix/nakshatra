@@ -7,10 +7,20 @@ import vastuRouter from './vastu.routes';
 import scriptureRouter from './scripture.routes';
 import knowledgeRouter from './knowledge.routes';
 import oracleRouter from './oracle.routes';
+import authRouter from './auth.routes';
+import userRouter from './user.routes';
+import shareRouter from './share.routes';
+import adminRouter from './admin.routes';
 
 export const apiRouter = Router();
 
-// Mount all sub-routers
+// Auth & user routes
+apiRouter.use('/auth', authRouter);
+apiRouter.use('/user', userRouter);
+apiRouter.use('/share', shareRouter);
+apiRouter.use('/admin', adminRouter);
+
+// Feature routes
 apiRouter.use('/kundli', kundliRouter);
 apiRouter.use('/llm', llmRouter);
 apiRouter.use('/tarot', tarotRouter);

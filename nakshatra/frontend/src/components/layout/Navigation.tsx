@@ -4,7 +4,7 @@ import { useStore } from '@/store'
 import {
   Home, Star, Hash, Compass, BookOpen, Trophy, Flame,
   User, Menu, X, Sparkles, Grid3X3, MessageCircle, Heart,
-  Calendar, Clock, Users, Crown, Database
+  Calendar, Clock, Users, Crown, Database, Shield
 } from 'lucide-react'
 import { xpForLevel } from '@/store'
 import LanguageToggle from '@/components/ui/LanguageToggle'
@@ -38,6 +38,7 @@ const navItems = [
 
 // Admin-only nav items — only visible to users with role 'admin'
 const adminNavItems = [
+  { path: '/admin', icon: Shield, label: 'Admin Panel', emoji: '👑' },
   { path: '/knowledge', icon: Database, label: 'Knowledge Base', emoji: '📚' },
 ]
 

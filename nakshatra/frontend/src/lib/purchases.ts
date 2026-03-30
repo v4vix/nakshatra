@@ -186,12 +186,13 @@ export function getSubscriptionState(): SubscriptionState {
 export function hasPlan(requiredPlan: PlanId): boolean {
   if (requiredPlan === 'free') return true
 
-  // Web fallback: check localStorage
+  // Web: check localStorage (synced from authStore on login)
   if (!isNative) {
     const stored = localStorage.getItem('nakshatra_plan')
-    if (requiredPlan === 'pro') return stored === 'pro' || stored === 'guru'
-    if (requiredPlan === 'guru') return stored === 'guru'
-    return false
+    const hierarchy: Record<string, number> = { free: 0, pro: 1, guru: 2 }
+    const userLevel = hierarchy[stored || 'free'] ?? 0
+    const requiredLevel = hierarchy[requiredPlan] ?? 1
+    return userLevel >= requiredLevel
   }
 
   if (requiredPlan === 'pro') {

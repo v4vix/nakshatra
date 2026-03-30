@@ -5,6 +5,10 @@ import type { KundliData } from '@/store'
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api/v1'
 
+// All API calls include credentials for session cookie transport
+const apiFetch: typeof fetch = (input, init) =>
+  fetch(input, { ...init, credentials: 'include' })
+
 // ─── Geocoding (free Nominatim API) ──────────────────────────────────────────
 
 interface GeoResult {
@@ -301,7 +305,7 @@ export async function calculateKundli(
   const dateOfBirth = `${birthDate}T${birthTime || '12:00'}`
 
   try {
-    const res = await fetch(`${API_BASE}/kundli/calculate`, {
+    const res = await apiFetch(`${API_BASE}/kundli/calculate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -338,7 +342,7 @@ export async function oracleChat(
   onError: (err: string) => void,
 ): Promise<void> {
   try {
-    const res = await fetch(`${API_BASE}/oracle/chat`, {
+    const res = await apiFetch(`${API_BASE}/oracle/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query, topK: 5, stream: true }),
@@ -384,7 +388,7 @@ export async function oracleChat(
 
 export async function drawTarotCards(count: number, spread?: string): Promise<any[] | null> {
   try {
-    const res = await fetch(`${API_BASE}/tarot/draw`, {
+    const res = await apiFetch(`${API_BASE}/tarot/draw`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ count, spread: spread || 'general' }),
@@ -404,7 +408,7 @@ export async function getTarotReading(
   question?: string,
 ): Promise<string | null> {
   try {
-    const res = await fetch(`${API_BASE}/tarot/reading`, {
+    const res = await apiFetch(`${API_BASE}/tarot/reading`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ spread, cards, question }),
@@ -422,7 +426,7 @@ export async function getTarotReading(
 
 export async function calculateNumerology(fullName: string, dateOfBirth: string): Promise<any | null> {
   try {
-    const res = await fetch(`${API_BASE}/numerology/calculate`, {
+    const res = await apiFetch(`${API_BASE}/numerology/calculate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fullName, dateOfBirth }),
@@ -435,7 +439,7 @@ export async function calculateNumerology(fullName: string, dateOfBirth: string)
 
 export async function getNumerologyCompatibility(lifePath1: number, lifePath2: number): Promise<any | null> {
   try {
-    const res = await fetch(`${API_BASE}/numerology/compatibility`, {
+    const res = await apiFetch(`${API_BASE}/numerology/compatibility`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ lifePath1, lifePath2 }),
@@ -450,7 +454,7 @@ export async function getNumerologyCompatibility(lifePath1: number, lifePath2: n
 
 export async function getDailyShloka(): Promise<any | null> {
   try {
-    const res = await fetch(`${API_BASE}/scripture/daily`, { signal: AbortSignal.timeout(5000) })
+    const res = await apiFetch(`${API_BASE}/scripture/daily`, { signal: AbortSignal.timeout(5000) })
     if (res.ok) return await res.json()
   } catch { /* fallback */ }
   return null
@@ -460,7 +464,7 @@ export async function getDailyShloka(): Promise<any | null> {
 
 export async function analyzeVastu(zones: { direction: string; rooms: string[] }[]): Promise<any | null> {
   try {
-    const res = await fetch(`${API_BASE}/vastu/analyze`, {
+    const res = await apiFetch(`${API_BASE}/vastu/analyze`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ zones }),
@@ -473,7 +477,7 @@ export async function analyzeVastu(zones: { direction: string; rooms: string[] }
 
 export async function getVastuZoneInfo(zone: string): Promise<any | null> {
   try {
-    const res = await fetch(`${API_BASE}/vastu/zone`, {
+    const res = await apiFetch(`${API_BASE}/vastu/zone`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ zone }),
@@ -488,7 +492,7 @@ export async function getVastuZoneInfo(zone: string): Promise<any | null> {
 
 export async function checkBackendHealth(): Promise<boolean> {
   try {
-    const res = await fetch(`${API_BASE.replace('/api/v1', '')}/health`, { signal: AbortSignal.timeout(3000) })
+    const res = await apiFetch(`${API_BASE.replace('/api/v1', '')}/health`, { signal: AbortSignal.timeout(3000) })
     return res.ok
   } catch {
     return false

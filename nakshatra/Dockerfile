@@ -15,6 +15,9 @@ RUN npm run build
 FROM node:22-bookworm AS backend-build
 WORKDIR /app/backend
 
+# Install build tools for native modules (better-sqlite3)
+RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && rm -rf /var/lib/apt/lists/*
+
 COPY backend/package*.json ./
 RUN npm install --no-audit --no-fund
 
@@ -34,14 +37,15 @@ RUN apt-get update \
 COPY --from=backend-build /app/backend/dist ./dist
 COPY --from=backend-build /app/backend/package*.json ./
 
-# Install only production deps
+# Install only production deps (includes native better-sqlite3)
 RUN npm install --no-audit --no-fund --omit=dev
 
 # Copy built frontend
 COPY --from=frontend-build /app/frontend/dist ./public
 
-# Create non-root user (Debian style)
-RUN groupadd -g 1001 nakshatra \
+# Create data directory for SQLite and non-root user
+RUN mkdir -p /app/data \
+ && groupadd -g 1001 nakshatra \
  && useradd -r -u 1001 -g nakshatra -d /app -s /usr/sbin/nologin nakshatra \
  && chown -R nakshatra:nakshatra /app
 

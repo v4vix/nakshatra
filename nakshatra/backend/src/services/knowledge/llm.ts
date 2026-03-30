@@ -154,7 +154,7 @@ async function* streamGroq(
   temperature: number,
   maxTokens: number,
 ): AsyncGenerator<{ text: string; provider: LLMProvider; model: string; done: boolean }> {
-  const model = 'llama-3.3-70b-versatile'; // Free tier model
+  const model = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'; // Free tier model
 
   const response = await axios.post(
     `${GROQ_BASE}/chat/completions`,
@@ -215,10 +215,14 @@ async function* ruleBasedFallback(
 
   let answer: string;
 
-  if (context.trim().length > 50) {
-    answer = `Based on the Vedic knowledge base, here is what I found relevant to your question:\n\n${
+  if (words.includes('tat tvam asi') || words.includes('tattvamasi')) {
+    answer = `"Tat Tvam Asi" (तत् त्वम् असि) — "Thou Art That" — is one of the four Mahavakyas (Great Sayings) from the Upanishads. It appears in the Chandogya Upanishad (6.8.7), where the sage Uddalaka Aruni teaches his son Shvetaketu the fundamental identity of the individual self (Atman) with the universal reality (Brahman). This teaching is central to Advaita Vedanta philosophy — the non-dual understanding that the essence of every being is identical with the Absolute. It is not merely an intellectual concept but a direct pointer to self-realization.`;
+  } else if (words.includes('9 of swords') || words.includes('nine of swords')) {
+    answer = `The Nine of Swords represents anxiety, worry, nightmares, and mental anguish. The card depicts a figure sitting up in bed, head in hands, with nine swords mounted on the wall behind them. Upright, it signifies overwhelming stress, guilt, or fear — often the worst of the suffering is self-created through rumination. The card asks you to examine whether your fears are based in reality or amplified by the mind. Reversed, it suggests the beginning of recovery, releasing guilt, and finding hope after a dark period. In Vedic terms, this aligns with the concept of "Chitta Vritti" — mental fluctuations that create suffering.`;
+  } else if (context.trim().length > 50) {
+    answer = `Based on Vedic wisdom:\n\n${
       context.slice(0, 1500)
-    }\n\nThis information is drawn from authentic Vedic sources indexed in the Nakshatra knowledge base. For a deeper interpretation, consider running a local LLM (Ollama) for richer analysis.`;
+    }\n\nThis insight is drawn from authentic Vedic sources in the Nakshatra knowledge base.`;
   } else if (words.includes('nakshatra')) {
     answer = `The 27 Nakshatras are the lunar mansions of Vedic astrology, each spanning 13°20' of the zodiac. They reveal the deeper psychological and spiritual nature of an individual. Each Nakshatra has a ruling deity (Devata), a planetary lord (Graha), and a symbol (Pratika) that encode its essential nature. To explore a specific Nakshatra, please provide its name or the Moon's degree in the birth chart.`;
   } else if (words.includes('rashi') || words.includes('zodiac') || words.includes('sign')) {
@@ -228,7 +232,7 @@ async function* ruleBasedFallback(
   } else if (words.includes('compatibility') || words.includes('matching')) {
     answer = `Vedic compatibility analysis primarily uses the Ashtakoot (eight-fold) matching system based on the Moon's Nakshatra. The eight factors are: Varna (1 point), Vashya (2), Tara (3), Yoni (4), Graha Maitri (5), Gana (6), Bhakoot (7), and Nadi (8), totalling 36 points. A score of 18+ is generally considered favourable for marriage.`;
   } else {
-    answer = `Thank you for your question about Vedic wisdom. The knowledge base contains information about Nakshatras, Rashis, Grahas, Dasha systems, compatibility, Panchanga, Vastu, and sacred scriptures. Please refine your question or upload more knowledge sources for deeper insights. For the richest experience, run a local LLM via Ollama.`;
+    answer = `Thank you for your question. The Nakshatra knowledge base covers Nakshatras, Rashis, Grahas, Dasha systems, compatibility (Ashtakoot), Panchanga, Vastu Shastra, Tarot, Numerology, and sacred scriptures including the Bhagavad Gita, Upanishads, and Vedas. Could you provide more specific details about what aspect of Vedic wisdom you'd like to explore? For example, you could ask about a specific Nakshatra, planet placement, yoga, or spiritual concept.`;
   }
 
   // Simulate streaming by yielding word by word

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Download, Copy, Share2, X, Check, Loader2 } from 'lucide-react'
+import { Download, Copy, Share2, X, Check, Loader2, Bookmark } from 'lucide-react'
+import { saveShareCard } from '@/services/auth'
 import toast from 'react-hot-toast'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -481,6 +482,8 @@ export default function ShareCard({ type, data, onClose }: ShareCardProps) {
   const [imgSrc, setImgSrc] = useState<string>('')
   const [copied, setCopied] = useState(false)
   const [sharing, setSharing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [savedUrl, setSavedUrl] = useState<string>('')
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -671,6 +674,41 @@ export default function ShareCard({ type, data, onClose }: ShareCardProps) {
             Share
           </motion.button>
         </div>
+
+        {/* Save to profile & get shareable link */}
+        <motion.button
+          onClick={async () => {
+            setSaving(true)
+            try {
+              const result = await saveShareCard({
+                type,
+                title: String(data.name || data.question || typeLabel[type]),
+                data,
+              })
+              const fullUrl = window.location.origin + result.url
+              setSavedUrl(fullUrl)
+              await navigator.clipboard.writeText(fullUrl)
+              toast.success('Saved! Link copied to clipboard')
+            } catch {
+              toast.error('Sign in to save cards')
+            }
+            setSaving(false)
+          }}
+          disabled={saving || !!savedUrl}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-cinzel text-xs font-semibold tracking-wider disabled:opacity-50 transition-all"
+          style={{
+            background: savedUrl
+              ? 'linear-gradient(135deg, rgba(34,197,94,0.15), rgba(34,197,94,0.05))'
+              : 'linear-gradient(135deg, rgba(255,179,71,0.15), rgba(255,107,0,0.1))',
+            border: savedUrl ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(255,179,71,0.2)',
+            color: savedUrl ? '#22c55e' : '#FFB347',
+          }}
+        >
+          {saving ? <Loader2 size={14} className="animate-spin" /> : savedUrl ? <Check size={14} /> : <Bookmark size={14} />}
+          {savedUrl ? 'Saved & Link Copied!' : 'Save to Profile & Get Link'}
+        </motion.button>
 
         <p className="text-champagne/30 text-xs font-cormorant text-center">
           Tap outside or press <kbd className="px-1.5 py-0.5 rounded text-xs bg-white/5 text-champagne/40">Esc</kbd> to close

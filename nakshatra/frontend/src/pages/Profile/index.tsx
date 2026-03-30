@@ -1,7 +1,9 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useStore, xpForLevel, getRankForLevel } from '@/store'
+import { useAuthStore } from '@/store/authStore'
+import { getMyShareCards, deleteShareCard } from '@/services/auth'
 import {
   User,
   Edit3,
@@ -21,6 +23,9 @@ import {
   Telescope,
   Layers,
   LogOut,
+  Link2,
+  Trash2,
+  Crown,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -231,9 +236,32 @@ function EditBirthModal({ onClose }: { onClose: () => void }) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function Profile() {
-  const { user, kundlis, tarotReadings, logout } = useStore()
+  const { user, kundlis, tarotReadings, logout: localLogout } = useStore()
+  const { user: authUser, logout: authLogout } = useAuthStore()
   const navigate = useNavigate()
   const [showEditModal, setShowEditModal] = useState(false)
+  const [savedCards, setSavedCards] = useState<any[]>([])
+
+  useEffect(() => {
+    getMyShareCards()
+      .then(d => setSavedCards(d.cards || []))
+      .catch(() => {})
+  }, [])
+
+  async function handleDeleteCard(id: string) {
+    try {
+      await deleteShareCard(id)
+      setSavedCards(prev => prev.filter(c => c.id !== id))
+      toast.success('Card deleted')
+    } catch { toast.error('Failed to delete card') }
+  }
+
+  async function handleLogout() {
+    await authLogout()
+    localLogout()
+    navigate('/login')
+    toast.success('Logged out successfully')
+  }
 
   if (!user) {
     return (
@@ -243,6 +271,7 @@ export default function Profile() {
     )
   }
 
+  const tier = authUser?.tier || 'free'
   const xpProgress = user.xp
   const xpNeeded = user.xpToNextLevel
   const progressPercent = Math.min(100, (xpProgress / xpNeeded) * 100)
@@ -554,12 +583,51 @@ export default function Profile() {
         transition={{ delay: 0.5 }}
         className="mt-6"
       >
+        {/* Tier Badge */}
+        <div className="mb-4 flex items-center justify-center gap-2">
+          <Crown size={14} className="text-gold/60" />
+          <span className={`px-3 py-1 rounded-full text-xs font-cinzel ${
+            tier === 'guru' ? 'bg-purple-600 text-white' :
+            tier === 'pro' ? 'bg-blue-600 text-white' :
+            'bg-slate-600 text-white'
+          }`}>
+            {tier.charAt(0).toUpperCase() + tier.slice(1)} Plan
+          </span>
+        </div>
+
+        {/* Saved Cards */}
+        {savedCards.length > 0 && (
+          <div className="mb-4">
+            <h3 className="font-cinzel text-sm text-gold/70 mb-2 flex items-center gap-2">
+              <Link2 size={14} /> Shared Cards
+            </h3>
+            <div className="grid grid-cols-2 gap-2">
+              {savedCards.map(card => (
+                <div key={card.id} className="glass-card-dark rounded-lg p-3 border border-stardust/30">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-gold/60 font-cinzel capitalize">{card.type}</span>
+                    <button onClick={() => handleDeleteCard(card.id)} className="text-red-400/40 hover:text-red-400">
+                      <Trash2 size={10} />
+                    </button>
+                  </div>
+                  <p className="text-xs text-champagne/60 font-cormorant truncate">{card.title || 'Untitled'}</p>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(window.location.origin + card.url)
+                      toast.success('Link copied!')
+                    }}
+                    className="mt-1 text-xs text-gold/40 hover:text-gold/70 flex items-center gap-1"
+                  >
+                    <Link2 size={8} /> Copy link
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <button
-          onClick={() => {
-            logout()
-            navigate('/onboarding')
-            toast.success('Logged out successfully')
-          }}
+          onClick={handleLogout}
           className="w-full py-3.5 rounded-xl bg-red-500/10 border border-red-500/25 text-red-400 font-cinzel text-sm hover:bg-red-500/20 hover:border-red-500/40 transition-all duration-300 flex items-center justify-center gap-2"
         >
           <LogOut className="w-4 h-4" />

@@ -8,6 +8,7 @@ import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import { apiRouter } from './routes/index';
 import { initialize as initKnowledgeBase } from './services/knowledge';
+import { initDB } from './db';
 import { sanitizeInput, additionalSecurityHeaders } from './middleware/security';
 
 const app: Application = express();
@@ -122,6 +123,13 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 
 // Start server only when run directly (not when imported by tests)
 if (process.env.NODE_ENV !== 'test') {
+  // Initialize database before starting server
+  try {
+    initDB();
+  } catch (err) {
+    console.error('   Database    : Failed to initialize', err);
+  }
+
   const server = app.listen(PORT, async () => {
     console.log(`\n🕉  Nakshatra Backend running on port ${PORT}`);
     console.log(`   Environment : ${process.env.NODE_ENV || 'development'}`);

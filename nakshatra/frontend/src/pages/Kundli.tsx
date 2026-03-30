@@ -289,12 +289,15 @@ function getSiderealSunSign(month: number, day: number): number {
 function computeMockKundli(birthDate: string, birthTime: string, birthPlace: string, name: string): KundliData {
   // Parse date parts directly to avoid UTC timezone shift (new Date('YYYY-MM-DD') parses as UTC)
   const [year, month, day] = birthDate.split('-').map(Number)
+  // Parse time — include in seed for time-sensitive calculations
+  const [hours, minutes] = (birthTime || '12:00').split(':').map(Number)
 
-  const seed = year * 10000 + month * 100 + day
+  const seed = year * 10000 + month * 100 + day + hours * 60 + minutes
   const rng = (n: number) => ((seed * 1103515245 + n * 12345) >>> 0) % 12
 
   const sunRashi = getSiderealSunSign(month, day)
-  const ascRashi = ((sunRashi + rng(1) + 2) % 12) + 1
+  // Ascendant changes roughly every 2 hours — incorporate birth time
+  const ascRashi = ((sunRashi + Math.floor(hours / 2) + rng(1)) % 12) + 1
   const moonRashi = ((sunRashi + rng(2) + 4) % 12) + 1
   const nakshatraIdx = (seed + day * 3) % 27
 
@@ -360,7 +363,7 @@ function computeMockKundli(birthDate: string, birthTime: string, birthPlace: str
     id: generateId(),
     name,
     birthDate,
-    birthTime: birthTime || '12:00',
+    birthTime: birthTime || `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`,
     birthPlace,
     birthLat: 19.076 + (seed % 10) * 0.1,
     birthLon: 72.877 + (seed % 10) * 0.1,

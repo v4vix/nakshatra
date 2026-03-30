@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useStore } from '@/store'
+import { useAuthStore } from '@/store/authStore'
 import { generateId } from '@/utils/generateId'
 import StarfieldCanvas from '@/components/layout/StarfieldCanvas'
 import { ChevronRight, ChevronLeft, Sparkles, Star, Calendar, Clock, MapPin } from 'lucide-react'
@@ -39,12 +40,29 @@ export default function Onboarding() {
     return true
   }
 
-  const handleComplete = () => {
-    const userId = generateId()
+  const handleComplete = async () => {
+    const { updateProfile } = useAuthStore.getState()
+
+    // Sync birth data and avatar to server
+    try {
+      await updateProfile({
+        fullName: form.fullName,
+        avatar: form.avatar,
+        birthDate: form.birthDate,
+        birthTime: form.birthTime,
+        birthPlace: form.birthPlace,
+        onboardingComplete: true,
+      })
+    } catch {
+      // Proceed even if server sync fails
+    }
+
+    const authUser = useAuthStore.getState().user
+    const userId = authUser?.id || generateId()
     setUser({
       id: userId,
-      username: form.username || 'cosmic_seeker',
-      email: '',
+      username: authUser?.username || form.username || 'cosmic_seeker',
+      email: authUser?.email || '',
       fullName: form.fullName,
       birthDate: form.birthDate,
       birthTime: form.birthTime,
@@ -61,9 +79,9 @@ export default function Onboarding() {
       completedChallenges: [],
       kundliIds: [],
       onboardingComplete: true,
-      role: 'user',
+      role: authUser?.role || 'user',
     })
-    toast.success('✨ Welcome bonus: +100 XP!', {
+    toast.success('Welcome bonus: +100 XP!', {
       icon: '🌟',
       duration: 4000,
     })

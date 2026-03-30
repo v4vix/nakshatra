@@ -35,4 +35,14 @@ export default defineConfig({
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom', 'framer-motion', 'zustand', '@tanstack/react-query', 'react-hot-toast', 'axios', 'lucide-react'],
   },
+  build: {
+    rollupOptions: {
+      // Sentry's unleash integration is optional — silence the missing module error
+      onwarn(warning, warn) {
+        if (warning.code === 'UNRESOLVED_IMPORT' && warning.message?.includes('unleash')) return
+        warn(warning)
+      },
+      external: (id) => id.includes('unleash/integration'),
+    },
+  },
 })
