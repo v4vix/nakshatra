@@ -54,51 +54,102 @@ export function getHinduMonth(date: Date): { name: string; devanagari: string; i
   }
 }
 
+// ─── Solar Time Calculation ─────────────────────────────────────────────────
+
+/**
+ * Compute sunrise, sunset, and solar noon for a given date and location.
+ * Accuracy: ±5-10 minutes (acceptable for Rahu Kalam). No external dependencies.
+ * Uses simplified declination formula + Spencer's Equation of Time.
+ */
+export function getSolarTimes(
+  date: Date,
+  lat: number,
+  lon: number,
+  tzOffsetHours: number
+): { sunriseMins: number; sunsetMins: number; solarNoonMins: number } {
+  const start = new Date(date.getFullYear(), 0, 1)
+  const doy = Math.floor((date.getTime() - start.getTime()) / 86400000) + 1
+
+  // Solar declination (degrees) — accurate to ±0.3°
+  const declDeg = -23.45 * Math.cos((2 * Math.PI / 365) * (doy + 10))
+  const declRad = declDeg * Math.PI / 180
+  const latRad = lat * Math.PI / 180
+
+  // Hour angle at sunrise (90.833° accounts for refraction + solar disk radius)
+  const cosH = (Math.cos(90.833 * Math.PI / 180) - Math.sin(latRad) * Math.sin(declRad)) /
+    (Math.cos(latRad) * Math.cos(declRad))
+  if (Math.abs(cosH) > 1) return { sunriseMins: 360, sunsetMins: 1080, solarNoonMins: 720 }
+
+  const HA = Math.acos(cosH) * 180 / Math.PI // hour angle in degrees
+
+  // Equation of Time (minutes), Spencer (1971) — accurate to ±30 sec
+  const B = (2 * Math.PI / 365) * (doy - 81)
+  const EqT = 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B)
+
+  // Solar noon in local standard time (minutes from midnight)
+  const solarNoonMins = Math.round(720 - EqT + tzOffsetHours * 60 - lon * 4)
+
+  return {
+    sunriseMins: Math.round(solarNoonMins - HA * 4),
+    sunsetMins: Math.round(solarNoonMins + HA * 4),
+    solarNoonMins,
+  }
+}
+
 // ─── Rahu Kalam ─────────────────────────────────────────────────────────────
 
-// Rahu Kalam duration: 1.5 hours, starts at different times per weekday
-// Based on standard 6am–6pm (12hr day) division into 8 parts
-// Weekday index 0=Sun, order: [8,2,7,5,6,4,3] as parts (1-indexed out of 8)
-const RAHU_KALAM_PARTS = [8, 2, 7, 5, 6, 4, 3] // Sun through Sat
+// Rahu Kalam: 1/8 of daylight, at different parts depending on weekday
+// Part indices (1-based, out of 8 parts) per weekday Sun-Sat
+const RAHU_KALAM_PARTS = [8, 2, 7, 5, 6, 4, 3]
 
-export function getRahuKalam(date: Date, sunriseMins = 360, sunsetMins = 1080): { start: string; end: string } {
-  const dayLength = sunsetMins - sunriseMins // in minutes
+function fmtMins(mins: number): string {
+  const h = Math.floor(((mins % 1440) + 1440) % 1440 / 60)
+  const m = Math.round(((mins % 1440) + 1440) % 1440 % 60)
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`
+}
+
+export function getRahuKalam(
+  date: Date,
+  lat = 23.0,
+  lon = 82.5,
+  tzOffset = 5.5
+): { start: string; end: string } {
+  const { sunriseMins, sunsetMins } = getSolarTimes(date, lat, lon, tzOffset)
+  const dayLength = sunsetMins - sunriseMins
   const partDuration = dayLength / 8
-  const part = RAHU_KALAM_PARTS[date.getDay()] - 1 // 0-indexed
+  const part = RAHU_KALAM_PARTS[date.getDay()] - 1
   const startMins = sunriseMins + part * partDuration
-  const endMins = startMins + partDuration
-
-  const fmt = (mins: number) => {
-    const h = Math.floor(mins / 60)
-    const m = Math.round(mins % 60)
-    const ampm = h < 12 ? 'AM' : 'PM'
-    const h12 = h % 12 || 12
-    return `${h12}:${String(m).padStart(2, '0')} ${ampm}`
-  }
-
-  return { start: fmt(startMins), end: fmt(endMins) }
+  return { start: fmtMins(startMins), end: fmtMins(startMins + partDuration) }
 }
 
-// Abhijit Muhurta: the auspicious midday window (~11:48 AM – 12:36 PM)
-export function getAbhijitMuhurta(): { start: string; end: string } {
-  return { start: '11:48 AM', end: '12:36 PM' }
+/**
+ * Abhijit Muhurta: auspicious midday window — solar noon ± 24 minutes.
+ * Computed dynamically based on actual solar noon for the location.
+ */
+export function getAbhijitMuhurta(
+  date: Date,
+  lat = 23.0,
+  lon = 82.5,
+  tzOffset = 5.5
+): { start: string; end: string } {
+  const { solarNoonMins } = getSolarTimes(date, lat, lon, tzOffset)
+  return { start: fmtMins(solarNoonMins - 24), end: fmtMins(solarNoonMins + 24) }
 }
 
-// Yamakantam (inauspicious period)
+// Yamakantam: inauspicious period, 1/8 of day at weekday-specific part
 const YAMAKANTAM_PARTS = [5, 4, 3, 2, 1, 7, 6]
-export function getYamakantam(date: Date, sunriseMins = 360, sunsetMins = 1080): { start: string; end: string } {
+export function getYamakantam(
+  date: Date,
+  lat = 23.0,
+  lon = 82.5,
+  tzOffset = 5.5
+): { start: string; end: string } {
+  const { sunriseMins, sunsetMins } = getSolarTimes(date, lat, lon, tzOffset)
   const dayLength = sunsetMins - sunriseMins
   const partDuration = dayLength / 8
   const part = YAMAKANTAM_PARTS[date.getDay()] - 1
   const startMins = sunriseMins + part * partDuration
-  const endMins = startMins + partDuration
-  const fmt = (mins: number) => {
-    const h = Math.floor(mins / 60)
-    const m = Math.round(mins % 60)
-    const ampm = h < 12 ? 'AM' : 'PM'
-    return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`
-  }
-  return { start: fmt(startMins), end: fmt(endMins) }
+  return { start: fmtMins(startMins), end: fmtMins(startMins + partDuration) }
 }
 
 // ─── Ekadashi Dates 2026 ─────────────────────────────────────────────────────
@@ -231,7 +282,7 @@ export interface CalendarDay {
   isPurnima: boolean
   purnimaName?: string
   isAmavasya: boolean
-  amavasyaname?: string
+  amavasyaName?: string
 }
 
 // ─── Moon Phase Emoji ───────────────────────────────────────────────────────
@@ -303,10 +354,12 @@ function calculatePanchangaForDate(date: Date) {
     isAuspicious: AUSPICIOUS_YOGAS.has(YOGAS_27[yogaIndex]),
   }
 
-  // Karana
-  const karanaPhase = (daysSinceNewMoon % 0.5) < 0.25
-  const karanaRaw = tithiIndex * 2 + (karanaPhase ? 0 : 1)
-  const karanaIndex = karanaRaw % 11
+  // Karana — correct 60-karana cycle per lunar month
+  // Karana 0: Kimstughna (fixed, 1st half of Shukla Pratipada)
+  // Karanas 1-56: 7 moving karanas repeating (Bava→Vishti), indices 0-6
+  // Karanas 57-59: Shakuni(7), Chatushpada(8), Naga(9) — fixed at end
+  const karanaNum = Math.floor((daysSinceNewMoon / 29.530588853) * 60) % 60
+  const karanaIndex = karanaNum === 0 ? 10 : karanaNum >= 57 ? karanaNum - 50 : (karanaNum - 1) % 7
   const karana: KaranaInfo = {
     name: KARANAS[karanaIndex],
     devanagari: KARANAS_DEVANAGARI[karanaIndex],
@@ -364,9 +417,49 @@ const ECLIPSES_2026: { month: number; day: number; type: string }[] = [
 
 // ─── Public API ─────────────────────────────────────────────────────────────
 
-export function getMonthData(year: number, month: number): CalendarDay[] {
+/**
+ * Compute Ekadashi, Purnima, and Amavasya dates for any year/month from tithi calculation.
+ * Used as fallback when outside the hardcoded 2026 range.
+ */
+function computeTithiSpecialDays(year: number, month: number): {
+  ekadashis: { day: number; paksha: 'Shukla' | 'Krishna' }[]
+  purnimas: number[]
+  amavasyas: number[]
+} {
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const ekadashis: { day: number; paksha: 'Shukla' | 'Krishna' }[] = []
+  const purnimas: number[] = []
+  const amavasyas: number[] = []
+  let prevTithiIdx = -1
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const noon = new Date(year, month, d, 12, 0, 0)
+    const elapsed = ((noon.getTime() - NEW_MOON_EPOCH) % LUNAR_CYCLE_MS + LUNAR_CYCLE_MS) % LUNAR_CYCLE_MS
+    const daysSince = elapsed / 86400000
+    const tithiIdx = ((Math.floor((daysSince / 29.530588853) * 30) % 30) + 30) % 30
+
+    if (tithiIdx !== prevTithiIdx) {
+      if (tithiIdx === 10) ekadashis.push({ day: d, paksha: 'Shukla' })   // 11th Shukla tithi
+      if (tithiIdx === 25) ekadashis.push({ day: d, paksha: 'Krishna' })  // 11th Krishna tithi
+      if (tithiIdx === 14) purnimas.push(d)
+      if (tithiIdx === 29) amavasyas.push(d)
+    }
+    prevTithiIdx = tithiIdx
+  }
+  return { ekadashis, purnimas, amavasyas }
+}
+
+/**
+ * @param lat  Latitude for solar time calculations (default: India center 23°N)
+ * @param lon  Longitude (default: 82.5°E)
+ * @param tz   UTC offset in hours (default: 5.5 for IST)
+ */
+export function getMonthData(year: number, month: number, lat = 23.0, lon = 82.5, tz = 5.5): CalendarDay[] {
   const daysInMonth = new Date(year, month + 1, 0).getDate()
   const days: CalendarDay[] = []
+
+  // For non-2026 years: compute special days from tithi
+  const dynamic = year !== 2026 ? computeTithiSpecialDays(year, month) : null
 
   for (let d = 1; d <= daysInMonth; d++) {
     const date = new Date(year, month, d)
@@ -383,41 +476,40 @@ export function getMonthData(year: number, month: number): CalendarDay[] {
     // Hindu calendar data
     const hinduMonth = getHinduMonth(date)
     const vikramSamvat = getVikramSamvat(year, month)
-    const rahuKalam = getRahuKalam(date)
-    const abhijitMuhurta = getAbhijitMuhurta()
-    const yamakantam = getYamakantam(date)
+    const rahuKalam = getRahuKalam(date, lat, lon, tz)
+    const abhijitMuhurta = getAbhijitMuhurta(date, lat, lon, tz)
+    const yamakantam = getYamakantam(date, lat, lon, tz)
 
-    // Ekadashi
-    const ekadashiEntry = year === 2026
-      ? EKADASHI_2026.find(e => e.month === month && e.day === d)
-      : undefined
-    const isEkadashi = !!ekadashiEntry
-    if (isEkadashi && ekadashiEntry) {
+    // Ekadashi — named entries for 2026, tithi-computed for other years
+    const ekadashiEntry2026 = year === 2026 ? EKADASHI_2026.find(e => e.month === month && e.day === d) : undefined
+    const ekadashiDynamic = dynamic?.ekadashis.find(e => e.day === d)
+    const isEkadashi = !!(ekadashiEntry2026 || ekadashiDynamic)
+    const ekadashiName = ekadashiEntry2026?.name ?? (ekadashiDynamic ? `${ekadashiDynamic.paksha} Ekadashi` : undefined)
+    const ekadashiPaksha = ekadashiEntry2026?.paksha ?? ekadashiDynamic?.paksha
+    if (isEkadashi && ekadashiName && ekadashiPaksha) {
       festivals.push({
-        name: ekadashiEntry.name,
-        description: `${ekadashiEntry.paksha} Paksha Ekadashi — sacred fasting day dedicated to Lord Vishnu.`,
+        name: ekadashiName,
+        description: `${ekadashiPaksha} Paksha Ekadashi — sacred fasting day dedicated to Lord Vishnu.`,
         gradient: 'from-blue-600 to-indigo-700',
       })
     }
 
     // Purnima
-    const purnimaEntry = year === 2026
-      ? PURNIMA_2026.find(p => p.month === month && p.day === d)
-      : undefined
-    const isPurnima = !!purnimaEntry
-    if (isPurnima && purnimaEntry) {
+    const purnimaEntry2026 = year === 2026 ? PURNIMA_2026.find(p => p.month === month && p.day === d) : undefined
+    const isPurnimaDynamic = dynamic?.purnimas.includes(d) ?? false
+    const isPurnima = !!(purnimaEntry2026 || isPurnimaDynamic)
+    const purnimaName = purnimaEntry2026?.name ?? (isPurnimaDynamic ? 'Purnima' : undefined)
+    if (isPurnima && purnimaName) {
       festivals.push({
-        name: purnimaEntry.name,
+        name: purnimaName,
         description: 'Full Moon day — auspicious for prayers, fasting, and gratitude.',
         gradient: 'from-slate-400 to-blue-200',
       })
     }
 
     // Amavasya
-    const amavasya = year === 2026
-      ? AMAVASYA_2026.find(a => a.month === month && a.day === d)
-      : undefined
-    const isAmavasya = !!amavasya
+    const amavasya2026 = year === 2026 ? AMAVASYA_2026.find(a => a.month === month && a.day === d) : undefined
+    const isAmavasya = !!(amavasya2026 || dynamic?.amavasyas.includes(d))
 
     days.push({
       date,
@@ -431,12 +523,12 @@ export function getMonthData(year: number, month: number): CalendarDay[] {
       abhijitMuhurta,
       yamakantam,
       isEkadashi,
-      ekadashiName: ekadashiEntry?.name,
-      ekadashiPaksha: ekadashiEntry?.paksha,
+      ekadashiName,
+      ekadashiPaksha,
       isPurnima,
-      purnimaName: purnimaEntry?.name,
+      purnimaName,
       isAmavasya,
-      amavasyaname: amavasya?.name,
+      amavasyaName: amavasya2026?.name,
     })
   }
 

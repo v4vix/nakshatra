@@ -23,11 +23,12 @@ export default function Login() {
   }
 
   function fillDemo(tier: string) {
+    // gitleaks:allow — intentional public demo credentials for staging/demo environment
     const accounts: Record<string, { email: string; password: string }> = {
       free: { email: 'free@nakshatra.app', password: 'nakshatra123' },
       pro: { email: 'pro@nakshatra.app', password: 'nakshatra123' },
       guru: { email: 'guru@nakshatra.app', password: 'nakshatra123' },
-      admin: { email: 'admin@nakshatra.app', password: 'nakshatra_admin' },
+      admin: { email: 'admin@nakshatra.app', password: 'nakshatra_adm1n' },
     }
     const acc = accounts[tier]
     if (acc) { setEmail(acc.email); setPassword(acc.password) }

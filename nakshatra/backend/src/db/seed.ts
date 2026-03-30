@@ -1,11 +1,17 @@
 /**
- * Seed demo accounts for Nakshatra
- * 4 accounts: free, pro, guru, admin
+ * Seed demo accounts for Nakshatra.
+ * Passwords are read from environment variables; the fallback values are
+ * intentional, publicly-documented demo credentials for development/staging.
+ * Set DEMO_PASSWORD and ADMIN_PASSWORD env vars in production to override.
  */
 
 import Database from 'better-sqlite3';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+
+// gitleaks:allow — intentional demo credentials, overridable via env vars
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD ?? 'nakshatra123'
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? 'nakshatra_adm1n'
 
 export function seedDemoAccounts(db: Database.Database): void {
   const insert = db.prepare(`
@@ -19,7 +25,7 @@ export function seedDemoAccounts(db: Database.Database): void {
     {
       username: 'free_user',
       email: 'free@nakshatra.app',
-      password: 'nakshatra123',
+      password: DEMO_PASSWORD,
       fullName: 'Arjun Sharma',
       avatar: '🌟',
       role: 'user',
@@ -38,7 +44,7 @@ export function seedDemoAccounts(db: Database.Database): void {
     {
       username: 'pro_user',
       email: 'pro@nakshatra.app',
-      password: 'nakshatra123',
+      password: DEMO_PASSWORD,
       fullName: 'Priya Patel',
       avatar: '✨',
       role: 'user',
@@ -57,7 +63,7 @@ export function seedDemoAccounts(db: Database.Database): void {
     {
       username: 'guru_user',
       email: 'guru@nakshatra.app',
-      password: 'nakshatra123',
+      password: DEMO_PASSWORD,
       fullName: 'Ravi Krishnamurthy',
       avatar: '🔮',
       role: 'user',
@@ -80,7 +86,7 @@ export function seedDemoAccounts(db: Database.Database): void {
     {
       username: 'admin',
       email: 'admin@nakshatra.app',
-      password: 'nakshatra_admin',
+      password: ADMIN_PASSWORD,
       fullName: 'Nakshatra Admin',
       avatar: '👑',
       role: 'admin',

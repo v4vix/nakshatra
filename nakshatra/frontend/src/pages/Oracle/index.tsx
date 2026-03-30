@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useStore } from '@/store'
+import { RASHI_NAMES, NAKSHATRA_NAMES } from '@/lib/vedic-constants'
 import {
   Send,
   Sparkles,
@@ -702,7 +703,7 @@ function MessageBubble({ message, userAvatar, isLastOracle }: MessageBubbleProps
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function OraclePage() {
-  const { user, addXP } = useStore()
+  const { user, addXP, getActiveKundli } = useStore()
   const [messages, setMessages] = useState<ChatMessage[]>([ORACLE_GREETING])
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -710,10 +711,22 @@ export default function OraclePage() {
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
   const userAvatar = user?.avatar ?? '🌟'
+  const activeKundli = getActiveKundli()
+  const moonPlanet = activeKundli?.planets?.find(p => p.name === 'Moon')
   const userContext = {
     name: user?.fullName ?? user?.username ?? 'Seeker',
     level: user?.level ?? 1,
     rank: user?.rank ?? 'Stardust Seeker',
+    birthDate: user?.birthDate,
+    birthPlace: user?.birthPlace,
+    lagna: activeKundli?.ascendant?.rashiIndex !== undefined
+      ? RASHI_NAMES[activeKundli.ascendant.rashiIndex] : undefined,
+    moonSign: moonPlanet?.rashiIndex !== undefined
+      ? RASHI_NAMES[moonPlanet.rashiIndex] : undefined,
+    birthNakshatra: moonPlanet?.nakshatraIndex !== undefined
+      ? NAKSHATRA_NAMES[moonPlanet.nakshatraIndex] : undefined,
+    currentMahadasha: activeKundli?.dashas?.currentMahadasha?.planet,
+    currentAntardasha: activeKundli?.dashas?.currentAntardasha?.planet,
   }
 
   const scrollToBottom = useCallback(() => {

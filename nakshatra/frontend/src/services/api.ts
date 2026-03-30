@@ -252,11 +252,24 @@ function mapBackendToKundliData(
 
   const now = new Date()
   const currentMaha = mahadashas.find(m => new Date(m.startDate) <= now && new Date(m.endDate) >= now) || mahadashas[0]
+
+  // Correct Vimshottari Antardasha: starts from Mahadasha lord, follows same sequence
+  // Duration = (Mahadasha years × Antardasha lord's Mahadasha years) / 120
   const DASHA_SEQ = ['Ketu', 'Venus', 'Sun', 'Moon', 'Mars', 'Rahu', 'Jupiter', 'Saturn', 'Mercury']
-  const currentAntar = {
-    planet: DASHA_SEQ[(DASHA_SEQ.indexOf(currentMaha.planet) + 3) % 9],
-    startDate: currentMaha.startDate,
-    endDate: currentMaha.endDate,
+  const DASHA_YEARS: Record<string, number> = { Ketu: 7, Venus: 20, Sun: 6, Moon: 10, Mars: 7, Rahu: 18, Jupiter: 16, Saturn: 19, Mercury: 17 }
+  const MS_PER_YEAR = 365.25 * 24 * 60 * 60 * 1000
+  const mahaLordIdx = DASHA_SEQ.indexOf(currentMaha.planet)
+  let antarStart = new Date(currentMaha.startDate)
+  let currentAntar = { planet: currentMaha.planet, startDate: currentMaha.startDate, endDate: currentMaha.endDate }
+  for (let i = 0; i < 9; i++) {
+    const antarLord = DASHA_SEQ[(mahaLordIdx + i) % 9]
+    const antarYears = (currentMaha.years * DASHA_YEARS[antarLord]) / 120
+    const antarEnd = new Date(antarStart.getTime() + antarYears * MS_PER_YEAR)
+    if (now >= antarStart && now < antarEnd) {
+      currentAntar = { planet: antarLord, startDate: antarStart.toISOString().split('T')[0], endDate: antarEnd.toISOString().split('T')[0] }
+      break
+    }
+    antarStart = antarEnd
   }
 
   return {

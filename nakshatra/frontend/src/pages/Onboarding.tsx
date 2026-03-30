@@ -335,6 +335,11 @@ function BirthStep({
             focus:border-gold/60 focus:outline-none transition-colors font-cormorant text-lg
             [color-scheme:dark]"
         />
+        {!birthTime && (
+          <p className="text-xs text-amber-400/80 font-cormorant mt-1.5 leading-snug">
+            ⚠ Without birth time, your Lagna (Ascendant) cannot be determined accurately — Kundli will use a noon chart. Even an approximate time (morning/afternoon/evening) improves accuracy significantly.
+          </p>
+        )}
       </div>
       <div>
         <label className="flex items-center gap-2 text-xs font-cinzel text-gold/70 mb-2 uppercase tracking-wider">

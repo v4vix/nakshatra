@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useStore } from '@/store'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   getMonthData, getDayRating, getDayColor, getAuspiciousActivities,
@@ -87,10 +88,11 @@ function DayDetail({ day, onClose }: { day: CalendarDay; onClose: () => void }) 
             </div>
           </div>
 
-          {/* Panchanga Grid */}
+          {/* Panchanga Grid — 5 Angas: Tithi, Vara, Nakshatra, Yoga, Karana */}
           <div className="grid grid-cols-2 gap-2 mb-4">
             {[
               { label: 'Tithi', value: `${day.tithi.paksha} ${day.tithi.name}`, dev: day.tithi.devanagari, ok: day.tithi.isAuspicious },
+              { label: 'Vara', value: `${day.vara.english} (${day.vara.planet})`, dev: day.vara.name, ok: true },
               { label: 'Nakshatra', value: `${day.nakshatra.name} P${day.nakshatra.pada}`, dev: day.nakshatra.devanagari, ok: day.nakshatra.isAuspicious },
               { label: 'Yoga', value: day.yoga.name, dev: day.yoga.devanagari, ok: day.yoga.isAuspicious },
               { label: 'Karana', value: day.karana.name, dev: day.karana.devanagari, ok: day.karana.isAuspicious },
@@ -368,8 +370,14 @@ export default function CosmicCalendarPage() {
   const [month, setMonth] = useState(today.getMonth())
   const [selectedDay, setSelectedDay] = useState<CalendarDay | null>(null)
   const [view, setView] = useState<'calendar' | 'festivals'>('calendar')
+  const { getActiveKundli } = useStore()
 
-  const monthData = useMemo(() => getMonthData(year, month), [year, month])
+  // Use user's birth location for accurate Rahu Kalam; fall back to India centre
+  const activeKundli = getActiveKundli()
+  const lat = activeKundli?.birthLat ?? 23.0
+  const lon = activeKundli?.birthLon ?? 82.5
+
+  const monthData = useMemo(() => getMonthData(year, month, lat, lon), [year, month, lat, lon])
   const firstDayOfWeek = new Date(year, month, 1).getDay()
   const monthName = new Date(year, month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 
