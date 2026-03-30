@@ -15,6 +15,155 @@ import {
 } from '@/lib/vedic-constants'
 import type { NakshatraName } from '@/lib/vedic-constants'
 
+// ─── Hindu Month & Vikram Samvat ────────────────────────────────────────────
+
+// The 12 Hindu (Amanta) month names
+export const HINDU_MONTHS = [
+  'Chaitra', 'Vaishakha', 'Jyeshtha', 'Ashadha',
+  'Shravana', 'Bhadrapada', 'Ashwin', 'Kartik',
+  'Margashirsha', 'Pausha', 'Magha', 'Phalguna',
+]
+
+export const HINDU_MONTHS_DEVANAGARI = [
+  'चैत्र', 'वैशाख', 'ज्येष्ठ', 'आषाढ़',
+  'श्रावण', 'भाद्रपद', 'आश्विन', 'कार्तिक',
+  'मार्गशीर्ष', 'पौष', 'माघ', 'फाल्गुन',
+]
+
+/** Convert Gregorian year to Vikram Samvat year (approximate — varies by region by ±1) */
+export function getVikramSamvat(gregorianYear: number, month: number): number {
+  // Vikram Samvat is 56–57 years ahead of Gregorian.
+  // New year starts at Chaitra Shukla Pratipada (roughly March/April).
+  return gregorianYear + (month >= 3 ? 57 : 56)
+}
+
+/** Get the Hindu month name for a given Gregorian date (approximate Amanta system) */
+export function getHinduMonth(date: Date): { name: string; devanagari: string; index: number } {
+  // Approximate: Hindu months lag Gregorian by ~1 month, starting ~mid-month
+  // Chaitra ≈ Mar 15 – Apr 14, Vaishakha ≈ Apr 15 – May 14, etc.
+  const month = date.getMonth() // 0-indexed
+  const day = date.getDate()
+  // Shift: if after ~15th, use current Gregorian month offset; before 15th, use previous
+  const offset = day >= 15 ? month : (month - 1 + 12) % 12
+  // Chaitra starts in March (index 2), so shift by 2
+  const hinduIndex = ((offset - 2) + 12) % 12
+  return {
+    name: HINDU_MONTHS[hinduIndex],
+    devanagari: HINDU_MONTHS_DEVANAGARI[hinduIndex],
+    index: hinduIndex,
+  }
+}
+
+// ─── Rahu Kalam ─────────────────────────────────────────────────────────────
+
+// Rahu Kalam duration: 1.5 hours, starts at different times per weekday
+// Based on standard 6am–6pm (12hr day) division into 8 parts
+// Weekday index 0=Sun, order: [8,2,7,5,6,4,3] as parts (1-indexed out of 8)
+const RAHU_KALAM_PARTS = [8, 2, 7, 5, 6, 4, 3] // Sun through Sat
+
+export function getRahuKalam(date: Date, sunriseMins = 360, sunsetMins = 1080): { start: string; end: string } {
+  const dayLength = sunsetMins - sunriseMins // in minutes
+  const partDuration = dayLength / 8
+  const part = RAHU_KALAM_PARTS[date.getDay()] - 1 // 0-indexed
+  const startMins = sunriseMins + part * partDuration
+  const endMins = startMins + partDuration
+
+  const fmt = (mins: number) => {
+    const h = Math.floor(mins / 60)
+    const m = Math.round(mins % 60)
+    const ampm = h < 12 ? 'AM' : 'PM'
+    const h12 = h % 12 || 12
+    return `${h12}:${String(m).padStart(2, '0')} ${ampm}`
+  }
+
+  return { start: fmt(startMins), end: fmt(endMins) }
+}
+
+// Abhijit Muhurta: the auspicious midday window (~11:48 AM – 12:36 PM)
+export function getAbhijitMuhurta(): { start: string; end: string } {
+  return { start: '11:48 AM', end: '12:36 PM' }
+}
+
+// Yamakantam (inauspicious period)
+const YAMAKANTAM_PARTS = [5, 4, 3, 2, 1, 7, 6]
+export function getYamakantam(date: Date, sunriseMins = 360, sunsetMins = 1080): { start: string; end: string } {
+  const dayLength = sunsetMins - sunriseMins
+  const partDuration = dayLength / 8
+  const part = YAMAKANTAM_PARTS[date.getDay()] - 1
+  const startMins = sunriseMins + part * partDuration
+  const endMins = startMins + partDuration
+  const fmt = (mins: number) => {
+    const h = Math.floor(mins / 60)
+    const m = Math.round(mins % 60)
+    const ampm = h < 12 ? 'AM' : 'PM'
+    return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`
+  }
+  return { start: fmt(startMins), end: fmt(endMins) }
+}
+
+// ─── Ekadashi Dates 2026 ─────────────────────────────────────────────────────
+
+// Ekadashi = 11th tithi of each paksha (lunar fortnight), twice per month
+// These are the actual 2026 Ekadashi dates
+export const EKADASHI_2026: { month: number; day: number; name: string; paksha: 'Shukla' | 'Krishna' }[] = [
+  { month: 0, day: 6, name: 'Saphala Ekadashi', paksha: 'Krishna' },
+  { month: 0, day: 21, name: 'Putrada Ekadashi', paksha: 'Shukla' },
+  { month: 1, day: 4, name: 'Shattila Ekadashi', paksha: 'Krishna' },
+  { month: 1, day: 19, name: 'Jaya Ekadashi', paksha: 'Shukla' },
+  { month: 2, day: 6, name: 'Vijaya Ekadashi', paksha: 'Krishna' },
+  { month: 2, day: 21, name: 'Amalaki Ekadashi', paksha: 'Shukla' },
+  { month: 3, day: 4, name: 'Papamochani Ekadashi', paksha: 'Krishna' },
+  { month: 3, day: 19, name: 'Kamada Ekadashi', paksha: 'Shukla' },
+  { month: 4, day: 4, name: 'Varuthini Ekadashi', paksha: 'Krishna' },
+  { month: 4, day: 18, name: 'Mohini Ekadashi', paksha: 'Shukla' },
+  { month: 5, day: 3, name: 'Apara Ekadashi', paksha: 'Krishna' },
+  { month: 5, day: 17, name: 'Nirjala Ekadashi', paksha: 'Shukla' },
+  { month: 6, day: 2, name: 'Yogini Ekadashi', paksha: 'Krishna' },
+  { month: 6, day: 17, name: 'Devshayani Ekadashi', paksha: 'Shukla' },
+  { month: 7, day: 1, name: 'Kamika Ekadashi', paksha: 'Krishna' },
+  { month: 7, day: 15, name: 'Shravana Putrada Ekadashi', paksha: 'Shukla' },
+  { month: 7, day: 31, name: 'Aja Ekadashi', paksha: 'Krishna' },
+  { month: 8, day: 14, name: 'Parsva Ekadashi', paksha: 'Shukla' },
+  { month: 8, day: 29, name: 'Indira Ekadashi', paksha: 'Krishna' },
+  { month: 9, day: 13, name: 'Papankusha Ekadashi', paksha: 'Shukla' },
+  { month: 9, day: 29, name: 'Rama Ekadashi', paksha: 'Krishna' },
+  { month: 10, day: 12, name: 'Dev Prabodhini Ekadashi', paksha: 'Shukla' },
+  { month: 10, day: 28, name: 'Utpanna Ekadashi', paksha: 'Krishna' },
+  { month: 11, day: 11, name: 'Mokshada Ekadashi', paksha: 'Shukla' },
+  { month: 11, day: 28, name: 'Saphala Ekadashi', paksha: 'Krishna' },
+]
+
+// Purnima (Full Moon) and Amavasya (New Moon) 2026
+export const PURNIMA_2026: { month: number; day: number; name: string }[] = [
+  { month: 0, day: 13, name: 'Paush Purnima' },
+  { month: 1, day: 12, name: 'Magha Purnima' },
+  { month: 2, day: 13, name: 'Holi Purnima' },
+  { month: 3, day: 12, name: 'Hanuman Jayanti Purnima' },
+  { month: 4, day: 12, name: 'Buddha Purnima' },
+  { month: 5, day: 10, name: 'Vat Purnima' },
+  { month: 6, day: 10, name: 'Guru Purnima' },
+  { month: 7, day: 9, name: 'Shravana Purnima / Raksha Bandhan' },
+  { month: 8, day: 7, name: 'Bhadrapada Purnima' },
+  { month: 9, day: 6, name: 'Sharad Purnima' },
+  { month: 10, day: 5, name: 'Kartik Purnima / Dev Deepawali' },
+  { month: 11, day: 4, name: 'Margashirsha Purnima' },
+]
+
+export const AMAVASYA_2026: { month: number; day: number; name: string }[] = [
+  { month: 0, day: 29, name: 'Mauni Amavasya' },
+  { month: 1, day: 28, name: 'Maghi Amavasya' },
+  { month: 2, day: 28, name: 'Chaitra Amavasya' },
+  { month: 3, day: 27, name: 'Vaishakha Amavasya' },
+  { month: 4, day: 26, name: 'Jyeshtha Amavasya' },
+  { month: 5, day: 25, name: 'Ashadha Amavasya' },
+  { month: 6, day: 24, name: 'Shravana Amavasya' },
+  { month: 7, day: 23, name: 'Pitru Amavasya / Mahalaya' },
+  { month: 8, day: 21, name: 'Ashwin Amavasya' },
+  { month: 9, day: 21, name: 'Diwali / Lakshmi Puja' },
+  { month: 10, day: 20, name: 'Kartik Amavasya' },
+  { month: 11, day: 19, name: 'Margashirsha Amavasya' },
+]
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface VaraInfo {
@@ -70,6 +219,19 @@ export interface CalendarDay {
   moonPhase: string
   festivals: FestivalInfo[]
   eclipseWarning: string | null
+  // Hindu Calendar additions
+  hinduMonth: { name: string; devanagari: string; index: number }
+  vikramSamvat: number
+  rahuKalam: { start: string; end: string }
+  abhijitMuhurta: { start: string; end: string }
+  yamakantam: { start: string; end: string }
+  isEkadashi: boolean
+  ekadashiName?: string
+  ekadashiPaksha?: 'Shukla' | 'Krishna'
+  isPurnima: boolean
+  purnimaName?: string
+  isAmavasya: boolean
+  amavasyaname?: string
 }
 
 // ─── Moon Phase Emoji ───────────────────────────────────────────────────────
@@ -218,12 +380,63 @@ export function getMonthData(year: number, month: number): CalendarDay[] {
     // Eclipse warning
     const eclipse = ECLIPSES_2026.find(e => e.month === month && e.day === d && year === 2026)
 
+    // Hindu calendar data
+    const hinduMonth = getHinduMonth(date)
+    const vikramSamvat = getVikramSamvat(year, month)
+    const rahuKalam = getRahuKalam(date)
+    const abhijitMuhurta = getAbhijitMuhurta()
+    const yamakantam = getYamakantam(date)
+
+    // Ekadashi
+    const ekadashiEntry = year === 2026
+      ? EKADASHI_2026.find(e => e.month === month && e.day === d)
+      : undefined
+    const isEkadashi = !!ekadashiEntry
+    if (isEkadashi && ekadashiEntry) {
+      festivals.push({
+        name: ekadashiEntry.name,
+        description: `${ekadashiEntry.paksha} Paksha Ekadashi — sacred fasting day dedicated to Lord Vishnu.`,
+        gradient: 'from-blue-600 to-indigo-700',
+      })
+    }
+
+    // Purnima
+    const purnimaEntry = year === 2026
+      ? PURNIMA_2026.find(p => p.month === month && p.day === d)
+      : undefined
+    const isPurnima = !!purnimaEntry
+    if (isPurnima && purnimaEntry) {
+      festivals.push({
+        name: purnimaEntry.name,
+        description: 'Full Moon day — auspicious for prayers, fasting, and gratitude.',
+        gradient: 'from-slate-400 to-blue-200',
+      })
+    }
+
+    // Amavasya
+    const amavasya = year === 2026
+      ? AMAVASYA_2026.find(a => a.month === month && a.day === d)
+      : undefined
+    const isAmavasya = !!amavasya
+
     days.push({
       date,
       day: d,
       ...panchanga,
       festivals,
       eclipseWarning: eclipse ? eclipse.type : null,
+      hinduMonth,
+      vikramSamvat,
+      rahuKalam,
+      abhijitMuhurta,
+      yamakantam,
+      isEkadashi,
+      ekadashiName: ekadashiEntry?.name,
+      ekadashiPaksha: ekadashiEntry?.paksha,
+      isPurnima,
+      purnimaName: purnimaEntry?.name,
+      isAmavasya,
+      amavasyaname: amavasya?.name,
     })
   }
 
