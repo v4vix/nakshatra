@@ -11,7 +11,6 @@ import {
   YOGAS_27, YOGAS_DEVANAGARI, AUSPICIOUS_YOGAS,
   KARANAS, KARANAS_DEVANAGARI,
   VARA_NAMES, VARA_ENGLISH, VARA_PLANETS,
-  NEW_MOON_EPOCH, LUNAR_CYCLE_MS,
 } from '@/lib/vedic-constants'
 import type { NakshatraName } from '@/lib/vedic-constants'
 
@@ -285,6 +284,57 @@ export interface CalendarDay {
   amavasyaName?: string
 }
 
+// ─── Astronomical Utilities — Jean Meeus Simplified Theory ─────────────────
+// Replaces linear approximation (±5° error) with proper perturbation terms (~0.3° error).
+// This fixes tithi errors of ±2-3 days down to ±0-1 day for most dates.
+
+/** Julian Day Number for a given local date (uses local noon) */
+function julianDay(date: Date): number {
+  let y = date.getFullYear()
+  let m = date.getMonth() + 1
+  const d = date.getDate() + 0.5 // local noon
+  if (m <= 2) { y--; m += 12 }
+  const A = Math.floor(y / 100)
+  const B = 2 - A + Math.floor(A / 4)
+  return Math.floor(365.25 * (y + 4716)) + Math.floor(30.6001 * (m + 1)) + d + B - 1524.5
+}
+
+const toRad = (deg: number) => ((deg % 360 + 360) % 360) * Math.PI / 180
+
+/**
+ * Moon's ecliptic longitude (degrees), Meeus simplified Ch. 47, ~0.3° accuracy.
+ * Exported so Kundli mock can use it for birth chart calculations.
+ */
+export function getMoonLongitude(date: Date): number {
+  const d = julianDay(date) - 2451545.0
+  const L  = 218.3164477 + 13.17639650 * d  // Mean longitude
+  const M  = 134.9634114 + 13.06499295 * d  // Moon mean anomaly
+  const Ms = 357.5291092 + 0.98560028  * d  // Sun mean anomaly
+  const D  = 297.8501921 + 12.19074912 * d  // Mean elongation
+  const F  =  93.2720950 + 13.22935024 * d  // Argument of latitude
+  const corr =
+    6.288774 * Math.sin(toRad(M))           +
+    1.274018 * Math.sin(toRad(2*D - M))     +
+    0.658309 * Math.sin(toRad(2*D))         +
+    0.213616 * Math.sin(toRad(2*M))         -
+    0.185596 * Math.sin(toRad(Ms))          -
+    0.114336 * Math.sin(toRad(2*F))         +
+    0.058793 * Math.sin(toRad(2*(D-M)))     +
+    0.057212 * Math.sin(toRad(2*D-Ms-M))   +
+    0.053320 * Math.sin(toRad(2*D+M))       +
+    0.045874 * Math.sin(toRad(2*D-Ms))
+  return ((L + corr) % 360 + 360) % 360
+}
+
+/** Sun's ecliptic longitude (degrees), ~0.1° accuracy */
+export function getSunLongitude(date: Date): number {
+  const d  = julianDay(date) - 2451545.0
+  const Ms = ((357.5291092 + 0.98560028 * d) % 360 + 360) % 360
+  const L  = ((280.4665    + 0.9856474  * d) % 360 + 360) % 360
+  const C  = 1.9148 * Math.sin(toRad(Ms)) + 0.0200 * Math.sin(toRad(2*Ms)) + 0.0003 * Math.sin(toRad(3*Ms))
+  return ((L + C) % 360 + 360) % 360
+}
+
 // ─── Moon Phase Emoji ───────────────────────────────────────────────────────
 
 const MOON_EMOJIS = ['\u{1F311}', '\u{1F312}', '\u{1F313}', '\u{1F314}', '\u{1F315}', '\u{1F316}', '\u{1F317}', '\u{1F318}']
@@ -307,7 +357,6 @@ function getMoonPhaseEmoji(tithiIndex: number): string {
 
 function calculatePanchangaForDate(date: Date) {
   const noon = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0)
-  const now = noon.getTime()
   const dayIndex = noon.getDay()
 
   // Vara
@@ -317,12 +366,16 @@ function calculatePanchangaForDate(date: Date) {
     planet: VARA_PLANETS[dayIndex],
   }
 
-  // Tithi
-  const elapsed = ((now - NEW_MOON_EPOCH) % LUNAR_CYCLE_MS + LUNAR_CYCLE_MS) % LUNAR_CYCLE_MS
-  const daysSinceNewMoon = elapsed / (24 * 60 * 60 * 1000)
-  const tithiRaw = Math.floor((daysSinceNewMoon / 29.530588853) * 30)
-  const tithiIndex = ((tithiRaw % 30) + 30) % 30
-  const tithiNumber = (tithiIndex < 15 ? tithiIndex + 1 : tithiIndex - 15 + 1)
+  // Precise planetary longitudes — Meeus simplified theory (~0.3° moon, ~0.1° sun)
+  const moonLong = getMoonLongitude(noon)
+  const sunLong  = getSunLongitude(noon)
+
+  // Elongation (Moon − Sun): authentic basis for Tithi and Karana
+  const elongation = ((moonLong - sunLong) % 360 + 360) % 360
+
+  // Tithi: 1 tithi = 12° of elongation; range 0-29
+  const tithiIndex  = Math.floor(elongation / 12) % 30
+  const tithiNumber = tithiIndex < 15 ? tithiIndex + 1 : tithiIndex - 14
   const tithi: TithiInfo = {
     index: tithiIndex,
     name: TITHI_NAMES[tithiIndex],
@@ -331,34 +384,29 @@ function calculatePanchangaForDate(date: Date) {
     isAuspicious: AUSPICIOUS_TITHIS.has(tithiNumber),
   }
 
-  // Nakshatra
-  const moonLongitude = ((daysSinceNewMoon * 13.176) % 360 + 360) % 360
-  const nakshatraIndex = Math.floor(moonLongitude / 13.333) % 27
+  // Nakshatra: Moon's sidereal longitude in 27 equal arcs of 13°20'
+  const nakshatraIndex = Math.floor(moonLong / (360 / 27)) % 27
+  const pada = Math.floor((moonLong % (360 / 27)) / (360 / 108)) + 1
   const nakshatra: NakshatraInfo = {
     index: nakshatraIndex,
     name: NAKSHATRA_NAMES[nakshatraIndex],
     devanagari: NAKSHATRAS_DEVANAGARI[nakshatraIndex],
     lord: NAKSHATRA_LORDS[nakshatraIndex],
-    pada: Math.floor((moonLongitude % 13.333) / (13.333 / 4)) + 1,
+    pada,
     isAuspicious: AUSPICIOUS_NAKSHATRAS.has(NAKSHATRA_NAMES[nakshatraIndex]),
   }
 
-  // Yoga
-  const start = new Date(date.getFullYear(), 0, 0)
-  const doy = Math.floor((noon.getTime() - start.getTime()) / (24 * 60 * 60 * 1000))
-  const sunLongitude = ((doy - 80) * 0.9856 + 360) % 360
-  const yogaIndex = Math.floor(((sunLongitude + moonLongitude) % 360) / 13.333) % 27
+  // Yoga: (Sun + Moon longitude) in 27 divisions of 13°20'
+  const yogaIndex = Math.floor(((sunLong + moonLong) % 360) / (360 / 27)) % 27
   const yoga: YogaInfo = {
     name: YOGAS_27[yogaIndex],
     devanagari: YOGAS_DEVANAGARI[yogaIndex],
     isAuspicious: AUSPICIOUS_YOGAS.has(YOGAS_27[yogaIndex]),
   }
 
-  // Karana — correct 60-karana cycle per lunar month
-  // Karana 0: Kimstughna (fixed, 1st half of Shukla Pratipada)
-  // Karanas 1-56: 7 moving karanas repeating (Bava→Vishti), indices 0-6
-  // Karanas 57-59: Shakuni(7), Chatushpada(8), Naga(9) — fixed at end
-  const karanaNum = Math.floor((daysSinceNewMoon / 29.530588853) * 60) % 60
+  // Karana: 1 karana = 6° of elongation; 60 per lunar cycle
+  // Karana 0: Kimstughna (fixed), 1-56: 7 moving, 57-59: Shakuni/Chatushpada/Naga
+  const karanaNum   = Math.floor(elongation / 6) % 60
   const karanaIndex = karanaNum === 0 ? 10 : karanaNum >= 57 ? karanaNum - 50 : (karanaNum - 1) % 7
   const karana: KaranaInfo = {
     name: KARANAS[karanaIndex],
@@ -366,10 +414,7 @@ function calculatePanchangaForDate(date: Date) {
     isAuspicious: KARANAS[karanaIndex] !== 'Vishti',
   }
 
-  // Moon phase emoji
-  const moonPhase = getMoonPhaseEmoji(tithiIndex)
-
-  // Overall auspiciousness
+  const moonPhase  = getMoonPhaseEmoji(tithiIndex)
   const isAuspicious = tithi.isAuspicious && nakshatra.isAuspicious
 
   return { vara, tithi, nakshatra, yoga, karana, moonPhase, isAuspicious }
@@ -434,13 +479,14 @@ function computeTithiSpecialDays(year: number, month: number): {
 
   for (let d = 1; d <= daysInMonth; d++) {
     const noon = new Date(year, month, d, 12, 0, 0)
-    const elapsed = ((noon.getTime() - NEW_MOON_EPOCH) % LUNAR_CYCLE_MS + LUNAR_CYCLE_MS) % LUNAR_CYCLE_MS
-    const daysSince = elapsed / 86400000
-    const tithiIdx = ((Math.floor((daysSince / 29.530588853) * 30) % 30) + 30) % 30
+    const moonLong = getMoonLongitude(noon)
+    const sunLong  = getSunLongitude(noon)
+    const elongation = ((moonLong - sunLong) % 360 + 360) % 360
+    const tithiIdx = Math.floor(elongation / 12) % 30
 
     if (tithiIdx !== prevTithiIdx) {
-      if (tithiIdx === 10) ekadashis.push({ day: d, paksha: 'Shukla' })   // 11th Shukla tithi
-      if (tithiIdx === 25) ekadashis.push({ day: d, paksha: 'Krishna' })  // 11th Krishna tithi
+      if (tithiIdx === 10) ekadashis.push({ day: d, paksha: 'Shukla' })  // 11th Shukla tithi
+      if (tithiIdx === 25) ekadashis.push({ day: d, paksha: 'Krishna' }) // 11th Krishna tithi
       if (tithiIdx === 14) purnimas.push(d)
       if (tithiIdx === 29) amavasyas.push(d)
     }

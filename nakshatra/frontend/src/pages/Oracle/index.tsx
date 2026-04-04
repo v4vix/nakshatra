@@ -32,11 +32,21 @@ interface SuggestedPrompt {
 
 // ─── Rule Engine ──────────────────────────────────────────────────────────────
 
-function getOracleResponse(message: string, _userContext: Record<string, unknown>): string {
+function getOracleResponse(message: string, userContext: Record<string, unknown>): string {
   const msg = message.toLowerCase()
+  const name = userContext.name as string | undefined
+  const lagna = userContext.lagna as string | undefined
+  const moonSign = userContext.moonSign as string | undefined
+  const birthNakshatra = userContext.birthNakshatra as string | undefined
+  const currentMahadasha = userContext.currentMahadasha as string | undefined
+  const currentAntardasha = userContext.currentAntardasha as string | undefined
+  const greeting = name ? `Namaste, ${name}! 🙏` : 'Namaste! 🙏'
 
   if (msg.includes('hello') || msg.includes('hi') || msg.includes('namaste')) {
-    return `Namaste! 🙏 I am the Cosmic Oracle, keeper of Vedic wisdom.
+    const personal = lagna
+      ? `\n\nI can see you have a **${lagna} Lagna**${moonSign ? ` with your Moon in **${moonSign}**` : ''}${birthNakshatra ? ` and were born under the **${birthNakshatra} Nakshatra**` : ''}. Your chart awaits deeper inquiry.`
+      : '\n\nComplete your Kundli to unlock personalized readings.'
+    return `${greeting} I am the Cosmic Oracle, keeper of Vedic wisdom.${personal}
 
 Ask me about your birth chart, planetary periods, sacred texts, or the mysteries of the cosmos. I weave together the ancient sciences of Jyotisha, Tarot, Numerology, and Vastu Shastra to illuminate your path.
 
@@ -65,69 +75,120 @@ The yoga is especially powerful when:
   }
 
   if (msg.includes('lagna') || msg.includes('ascendant') || msg.includes('rising')) {
-    return `**The Lagna — The Soul's Mask**
+    const LAGNA_MEANINGS: Record<string, { lord: string; quality: string; traits: string }> = {
+      'Mesha': { lord: 'Mars (Mangal)', quality: 'Fire, Movable', traits: 'Bold, pioneering, competitive, quick to act; desires conquest and independence' },
+      'Vrishabha': { lord: 'Venus (Shukra)', quality: 'Earth, Fixed', traits: 'Sensual, steadfast, artistic, pleasure-loving; desires comfort and beauty' },
+      'Mithuna': { lord: 'Mercury (Budha)', quality: 'Air, Dual', traits: 'Curious, communicative, witty, adaptable; desires knowledge and connection' },
+      'Karka': { lord: 'Moon (Chandra)', quality: 'Water, Movable', traits: 'Nurturing, intuitive, emotional, protective; desires security and belonging' },
+      'Simha': { lord: 'Sun (Surya)', quality: 'Fire, Fixed', traits: 'Regal, creative, generous, proud; desires recognition and self-expression' },
+      'Kanya': { lord: 'Mercury (Budha)', quality: 'Earth, Dual', traits: 'Analytical, discerning, service-oriented, precise; desires perfection and order' },
+      'Tula': { lord: 'Venus (Shukra)', quality: 'Air, Movable', traits: 'Diplomatic, harmonious, aesthetic, indecisive; desires balance and partnership' },
+      'Vrishchika': { lord: 'Mars & Ketu (Scorpio)', quality: 'Water, Fixed', traits: 'Intense, transformative, secretive, powerful; desires depth and regeneration' },
+      'Dhanu': { lord: 'Jupiter (Guru)', quality: 'Fire, Dual', traits: 'Philosophical, optimistic, adventurous, spiritual; desires wisdom and expansion' },
+      'Makara': { lord: 'Saturn (Shani)', quality: 'Earth, Movable', traits: 'Disciplined, ambitious, practical, patient; desires status and lasting achievement' },
+      'Kumbha': { lord: 'Saturn (Shani)', quality: 'Air, Fixed', traits: 'Visionary, humanitarian, intellectual, unconventional; desires freedom and progress' },
+      'Meena': { lord: 'Jupiter (Guru)', quality: 'Water, Dual', traits: 'Empathic, imaginative, spiritual, compassionate; desires transcendence and union' },
+    }
+    const lagnaInfo = lagna ? LAGNA_MEANINGS[lagna] : null
+    const personalSection = lagnaInfo
+      ? `\n\n**Your Lagna: ${lagna}**\n— **Lagna Lord**: ${lagnaInfo.lord}\n— **Quality**: ${lagnaInfo.quality}\n— **Nature**: ${lagnaInfo.traits}\n\nYour **${lagnaInfo.lord}** is the most pivotal planet in your chart — wherever it sits, whatever it aspects, becomes a primary arena of your life story.`
+      : '\n\n*(Generate your Kundli to discover your personal Lagna insights)*'
+    return `**The Lagna — The Soul's Mask**${personalSection}
 
-The **Lagna** (लग्न) is the zodiac sign rising on the eastern horizon at the precise moment of your birth. It forms the **first house** of your natal chart and is perhaps the most critical point in Vedic astrology.
+The **Lagna** (लग्न) is the zodiac sign rising on the eastern horizon at your exact birth moment. It forms the **first house** and is the most critical point in Vedic astrology — the lens through which your entire chart is interpreted.
 
 **Why Lagna matters:**
-• It is the lens through which you experience the world
-• Colors your personality, physical appearance, and temperament
-• Acts as the "mask of the soul" — how others see you
-• Determines house lordships for your entire chart
-
-**The 12 Lagnas** each carry distinct qualities:
-— **Mesha (Aries)**: Bold, pioneering, Mars-ruled fire
-— **Vrishabha (Taurus)**: Sensual, steadfast, Venus-ruled earth
-— **Mithuna (Gemini)**: Curious, communicative, Mercury-ruled air
-— And so on through the zodiac...
-
-The Lagna lord (the planet ruling the Lagna sign) becomes the **most important planet** in your chart — its placement, dignity, and aspects profoundly shape your destiny.
+• Colors personality, physical appearance, and temperament
+• Determines all 12 house lordships for your chart
+• The Lagna lord's placement shapes destiny more than any other factor
+• Conjunctions and aspects to the Lagna heavily modify expression
 
 ॥ जन्मलग्नं च जन्मर्क्षं जन्मराशिं विचारयेत् ॥
 *"Examine the birth Lagna, birth Nakshatra, and birth Rashi together."*`
   }
 
-  if (msg.includes('mahadasha') || msg.includes('dasha')) {
-    return `**The Vimshottari Dasha System** — The Cosmic Timer
+  if (msg.includes('mahadasha') || msg.includes('dasha') || msg.includes('period') || msg.includes('antardasha')) {
+    const DASHA_MEANINGS: Record<string, string> = {
+      'Sun': 'authority, government, father, health, and self-confidence shine forward. Career elevation is common. Work with discipline and avoid ego conflicts.',
+      'Moon': 'emotions, home, mother, mind, and public life take center stage. Travel, changing circumstances, and fluctuating moods are themes. Nourish inner life.',
+      'Mars': 'energy, ambition, siblings, property, and courage are activated. Action-oriented period with drive to achieve goals, but guard against accidents and conflicts.',
+      'Rahu': 'foreign lands, unconventional paths, obsession, and material ambition surge. Rahu amplifies worldly desire — great gains possible, but illusions too.',
+      'Jupiter': 'wisdom, children, teachers, dharma, and expansion are blessed. One of the most auspicious periods — growth in knowledge, prosperity, and spiritual depth.',
+      'Saturn': 'discipline, karma, delays, service, and longevity are tested. Hard work bears fruit over time. Avoid shortcuts; this period rewards perseverance.',
+      'Mercury': 'intellect, communication, business, education, and skills are highlighted. Excellent for study, writing, and trade. Mind is sharp and analytical.',
+      'Ketu': 'detachment, spirituality, past karma, and inner searching dominate. Worldly matters may feel hollow. Deep spiritual progress and liberation are possible.',
+      'Venus': 'relationships, creativity, luxury, beauty, and material comforts flourish. One of the most enjoyable periods — love, art, and prosperity flow naturally.',
+    }
+    const personalSection = currentMahadasha
+      ? `\n\n**Your Current Period: ${currentMahadasha} Mahadasha${currentAntardasha ? ` / ${currentAntardasha} Antardasha` : ''}**\nDuring ${currentMahadasha} Mahadasha: *${DASHA_MEANINGS[currentMahadasha] || 'a significant planetary cycle unfolds.'}*${currentAntardasha && currentAntardasha !== currentMahadasha ? `\n\nThe ${currentAntardasha} Antardasha sub-period brings the flavor of ${currentAntardasha} into this broader ${currentMahadasha} chapter.` : ''}`
+      : '\n\n*(Generate your Kundli to see your active Dasha periods)*'
+    return `**The Vimshottari Dasha System** — The Cosmic Timer${personalSection}
 
 The **Vimshottari Dasha** (विंशोत्तरी दशा) is Vedic astrology's master timing system, spanning a complete **120-year cycle** through 9 planetary periods.
 
-**The Sequence of Dashas:**
-| Planet | Duration |
-|--------|----------|
-| ☽ Moon | 10 years |
-| ♂ Mars | 7 years |
-| ☊ Rahu | 18 years |
-| ♃ Jupiter | 16 years |
-| ♄ Saturn | 19 years |
-| ☿ Mercury | 17 years |
-| ☋ Ketu | 7 years |
-| ♀ Venus | 20 years |
-| ☉ Sun | 6 years |
+| Planet | Duration | Theme |
+|--------|----------|-------|
+| ☋ Ketu | 7 years | Detachment, moksha |
+| ♀ Venus | 20 years | Pleasure, relationships |
+| ☉ Sun | 6 years | Authority, soul |
+| ☽ Moon | 10 years | Mind, emotions |
+| ♂ Mars | 7 years | Ambition, courage |
+| ☊ Rahu | 18 years | Desire, foreign |
+| ♃ Jupiter | 16 years | Wisdom, dharma |
+| ♄ Saturn | 19 years | Karma, discipline |
+| ☿ Mercury | 17 years | Intellect, trade |
 
-Each Mahadasha is divided into **Antardashas** (sub-periods) and further **Pratyantardashas** (micro-periods), allowing precise timing of life events.
-
-Your starting Dasha at birth is determined by the **Nakshatra** position of your natal Moon — counting from that Nakshatra's ruling planet.
+Each Mahadasha divides into **Antardashas** and **Pratyantardashas** for precise timing of life events.
 
 ॥ कालः काला कलयते सर्वभूतान्यशेषतः ॥
 *"Time, the great calculator, counts all beings without exception."*`
   }
 
   if (msg.includes('nakshatra')) {
-    return `**The 27 Nakshatras** — Lunar Mansions of the Cosmos
+    const NAKSHATRA_BRIEF: Record<string, string> = {
+      'Ashwini': 'swift, healing, pioneering; Ashwini Kumaras bless you with speed and vitality',
+      'Bharani': 'transformative, intense, creative; Yama teaches you about boundaries and restraint',
+      'Krittika': 'sharp, purifying, ambitious; Agni (fire) gives cutting clarity and warrior spirit',
+      'Rohini': 'sensual, creative, fertile; Brahma blesses with beauty, abundance, and magnetic charm',
+      'Mrigashira': 'seeking, curious, gentle; Soma grants a searching, exploratory, deer-like nature',
+      'Ardra': 'stormy, transformative, sharp; Rudra brings intensity, innovation, and deep renewal',
+      'Punarvasu': 'expansive, returning, optimistic; Aditi the infinite grants renewal and good fortune',
+      'Pushya': 'nourishing, prosperous, spiritual; Brihaspati blesses with wisdom, devotion, and abundance',
+      'Ashlesha': 'serpentine, mystical, perceptive; Naga energy brings sharp intuition and hidden power',
+      'Magha': 'regal, ancestral, proud; Pitrs (ancestors) give authority, nobility, and leadership',
+      'Purva Phalguni': 'creative, pleasure-loving, social; Bhaga grants delight, rest, and creative gifts',
+      'Uttara Phalguni': 'generous, steady, helpful; Aryaman blesses with friendships and social harmony',
+      'Hasta': 'skillful, healing, precise; Savitar gives dexterous hands, wit, and manifesting power',
+      'Chitra': 'artistic, magnetic, brilliant; Tvashtar (Vishwakarma) grants creative genius and beauty',
+      'Swati': 'independent, airy, diplomatic; Vayu the wind gives freedom, flexibility, and adaptability',
+      'Vishakha': 'purposeful, intense, goal-oriented; Indra-Agni forge determined ambition and focus',
+      'Anuradha': 'devotional, organized, persevering; Mitra blesses with loyal friendships and steadiness',
+      'Jyeshtha': 'protective, powerful, complex; Indra gives authority, seniority, and hidden depth',
+      'Mula': 'uprooting, investigating, transformative; Nirriti strips away illusions to reveal roots',
+      'Purva Ashadha': 'invincible, philosophical, proud; Apas (waters) grant purification and momentum',
+      'Uttara Ashadha': 'victorious, universal, righteous; Vishvadevas give broad success and leadership',
+      'Shravana': 'listening, learning, connected; Vishnu the preserver grants wisdom through patience',
+      'Dhanishtha': 'wealthy, musical, ambitious; Eight Vasus bring prosperity, rhythm, and adaptability',
+      'Shatabhisha': 'healing, secretive, scientific; Varuna the cosmic ocean gives mystical depth',
+      'Purva Bhadrapada': 'passionate, transformative, dual; Aja Ekapada gives fire and spiritual intensity',
+      'Uttara Bhadrapada': 'wise, compassionate, deep; Ahir Budhnya the serpent grants depth and realization',
+      'Revati': 'nourishing, imaginative, empathic; Pushan guides safely across all journeys and thresholds',
+    }
+    const nakshatraInfo = birthNakshatra ? NAKSHATRA_BRIEF[birthNakshatra] : null
+    const personalSection = nakshatraInfo
+      ? `\n\n**Your Janma Nakshatra: ${birthNakshatra}**\n*${nakshatraInfo}.*\n\nThis Nakshatra colors your emotional responses, intuitive nature, and the karmic flavor of this lifetime.`
+      : '\n\n*(Generate your Kundli to discover your personal Janma Nakshatra)*'
+    return `**The 27 Nakshatras** — Lunar Mansions of the Cosmos${personalSection}
 
-The **Nakshatras** (नक्षत्र) are the 27 lunar mansions of Vedic astrology, dividing the 360° zodiac into segments of **13°20' each**.
+The **Nakshatras** (नक्षत्र) are the 27 lunar mansions of Vedic astrology, each spanning **13°20'** of the ecliptic.
 
 **Key Nakshatra Facts:**
-• Each Nakshatra has a ruling planet (Dasha lord)
-• Each has a presiding deity (*devata*)
-• Each has a symbol (*symbol*) and quality (*guna*)
+• Each has a ruling planet (Dasha lord) that initiates your Vimshottari cycle
+• Each has a presiding deity (*devata*), symbol, and quality (*guna*)
 • The Moon transits one Nakshatra approximately every 24.8 hours
 
-**The 27 Nakshatras in sequence:**
-Ashwini → Bharani → Krittika → Rohini → Mrigashira → Ardra → Punarvasu → Pushya → Ashlesha → Magha → Purva Phalguni → Uttara Phalguni → Hasta → Chitra → Swati → Vishakha → Anuradha → Jyeshtha → Mula → Purva Ashadha → Uttara Ashadha → Shravana → Dhanishtha → Shatabhisha → Purva Bhadrapada → Uttara Bhadrapada → **Revati**
-
-Your **Janma Nakshatra** (birth Nakshatra) — the Nakshatra of your natal Moon — is one of the most personal points in Vedic astrology, revealing your emotional nature, innate tendencies, and the flavor of your soul.
+**The 27 Nakshatras:**
+Ashwini → Bharani → Krittika → Rohini → Mrigashira → Ardra → Punarvasu → Pushya → Ashlesha → Magha → Purva Phalguni → Uttara Phalguni → Hasta → Chitra → Swati → Vishakha → Anuradha → Jyeshtha → Mula → Purva Ashadha → Uttara Ashadha → Shravana → Dhanishtha → Shatabhisha → Purva Bhadrapada → Uttara Bhadrapada → Revati
 
 ॥ चन्द्रमा मनसो जातः ॥
 *"The Moon was born from the cosmic mind."* — Purusha Sukta`
@@ -390,20 +451,25 @@ As Shani's sign, Kumbha natives often work hard and patiently for long-term gain
   }
 
   // Default response — acknowledge the question and provide guidance
-  return `Thank you for your question about "${message.length > 60 ? message.slice(0, 60) + '...' : message}."
+  const shortQ = message.length > 60 ? message.slice(0, 60) + '...' : message
+  const personalCtx = [
+    lagna && `Your **${lagna} Lagna** makes ${lagna === 'Karka' || lagna === 'Meena' || lagna === 'Vrishchika' ? 'introspective, feeling-oriented inquiry' : lagna === 'Dhanu' || lagna === 'Meena' ? 'philosophical and spiritual questioning' : 'analytical and direct inquiry'} your natural mode.`,
+    moonSign && `With Moon in **${moonSign}**, emotional attunement and intuition guide your seeking.`,
+    currentMahadasha && `Under **${currentMahadasha} Mahadasha**, questions about ${currentMahadasha === 'Rahu' || currentMahadasha === 'Ketu' ? 'karmic transformation and destiny' : currentMahadasha === 'Saturn' ? 'discipline, karma, and life purpose' : currentMahadasha === 'Jupiter' ? 'wisdom, dharma, and spiritual growth' : 'life direction and planetary energies'} are especially potent now.`,
+  ].filter(Boolean).join(' ')
 
-The cosmos holds wisdom on this matter. While I have deep knowledge in specific Vedic sciences, let me share what resonates:
+  return `Thank you for your question about *"${shortQ}"*
 
-Every question we ask the universe reflects an inner seeking. The Vedic tradition teaches that **true knowledge arises from sincere inquiry** — and your curiosity itself is a powerful force.
+${personalCtx ? personalCtx + '\n\n' : ''}The Vedic tradition teaches that **true knowledge arises from sincere inquiry** — and your curiosity itself is a powerful force.
 
-Here are some related areas I can explore in depth for you:
+Here are areas I can explore in depth for you:
 
 **Jyotisha (Vedic Astrology)** — Lagna, Dashas, Nakshatras, Yogas, planetary influences
 **Divination Arts** — Tarot interpretations, Numerology, Life Path numbers
 **Sacred Sciences** — Vastu Shastra, Bhagavad Gita, Upanishad teachings
 
-Try refining your question with a specific topic, for example:
-*"What does my Lagna mean?"* · *"Interpret the 9 of Swords"* · *"Explain Gaja Kesari Yoga"*
+Try a specific question:
+*"What does my ${lagna || 'Lagna'} mean?"* · *"Explain my ${currentMahadasha || 'current'} Mahadasha"* · *"What is Gaja Kesari Yoga?"*
 
 ॥ तमसो मा ज्योतिर्गमय ॥
 *"Lead me from darkness into light."* — Brihadaranyaka Upanishad`

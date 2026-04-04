@@ -286,6 +286,152 @@ function getSiderealSunSign(month: number, day: number): number {
   return 12
 }
 
+// ─── Karmic Axis: Rahu/Ketu house meanings ─────────────────────────────────
+
+const RAHU_HOUSE_MEANINGS: Record<number, { title: string; meaning: string; desire: string }> = {
+  1:  { title: 'Rahu in 1st — The Transformer', meaning: 'Soul drives toward self-reinvention. You are meant to develop a powerful, magnetic personality this lifetime. Identity itself is your area of karmic growth.', desire: 'Fame, recognition, a distinctive self-image.' },
+  2:  { title: 'Rahu in 2nd — The Accumulator', meaning: 'Karmic hunger for wealth, speech, and family legacy. You are learning to build material foundations and articulate truth with authority.', desire: 'Wealth, eloquence, a powerful voice.' },
+  3:  { title: 'Rahu in 3rd — The Communicator', meaning: 'Destined for bold self-expression, writing, media, and short journeys. Courage in communication is the soul\'s dharmic call.', desire: 'Influence through words, siblings, and media.' },
+  4:  { title: 'Rahu in 4th — The Homebuilder', meaning: 'Karmic drive toward domestic security, property, and emotional roots. Foreign lands or unconventional homes often become meaningful.', desire: 'Emotional security, real estate, a sense of belonging.' },
+  5:  { title: 'Rahu in 5th — The Creator', meaning: 'Soul craves creative expression, children, romance, and speculation. Intelligence and artistic gifts are amplified — and must be expressed honestly.', desire: 'Love, children, creative fame, intellectual brilliance.' },
+  6:  { title: 'Rahu in 6th — The Healer-Warrior', meaning: 'Karmic path through service, health, enemies, and daily discipline. You overcome obstacles through sheer persistence and unconventional methods.', desire: 'Mastery over disease, enemies, and daily work.' },
+  7:  { title: 'Rahu in 7th — The Relationship Seeker', meaning: 'Soul destiny is woven through partnerships — romantic, business, and social. The partner often comes from a different culture or background.', desire: 'A powerful, transformative life partner.' },
+  8:  { title: 'Rahu in 8th — The Occultist', meaning: 'Deep karmic drive toward hidden knowledge, transformation, and inheritance. Research into occult sciences, tantra, or other people\'s resources beckons.', desire: 'Occult mastery, longevity, hidden wealth.' },
+  9:  { title: 'Rahu in 9th — The Seeker', meaning: 'Dharmic path through higher education, philosophy, foreign cultures, and teachers. Conventional religion may be questioned and replaced with direct experience.', desire: 'Wisdom, guru, foreign travel, philosophical fame.' },
+  10: { title: 'Rahu in 10th — The Achiever', meaning: 'Perhaps the most powerful placement for material ambition. Soul is driven toward professional recognition, public status, and leaving a lasting legacy.', desire: 'Power, career pinnacle, societal recognition.' },
+  11: { title: 'Rahu in 11th — The Networker', meaning: 'Karmic gain through large networks, elder siblings, and fulfillment of ambitious desires. Technology, social groups, and unconventional income sources favor you.', desire: 'Abundant gains, influential social circles, bold dreams fulfilled.' },
+  12: { title: 'Rahu in 12th — The Wanderer', meaning: 'Soul karma is worked out in foreign lands, ashrams, hospitals, or through spiritual practice. Loss and isolation are initiations that lead to liberation.', desire: 'Moksha, spiritual breakthrough, foreign settlement.' },
+}
+
+const KETU_HOUSE_MEANINGS: Record<number, { title: string; meaning: string; release: string }> = {
+  1:  { title: 'Ketu in 1st — Past Identity Released', meaning: 'You carry deep past-life wisdom about the self, but must release ego-attachment this lifetime. Spiritual awareness comes naturally; worldly assertiveness requires effort.', release: 'Ego, vanity, over-identification with the physical body.' },
+  2:  { title: 'Ketu in 2nd — Past Wealth Released', meaning: 'In past lives, you accumulated wealth and family knowledge. Now you must learn to give freely and not hoard. Spiritual speech has more power than material accumulation.', release: 'Attachment to money, family traditions, possessions.' },
+  3:  { title: 'Ketu in 3rd — Past Courage Released', meaning: 'You\'ve been courageous and communicative in past lives. Now the lesson is to communicate from the heart rather than just for effect. Siblings may feel distant.', release: 'Shallow communication, aggression for its own sake.' },
+  4:  { title: 'Ketu in 4th — Past Home Released', meaning: 'Past lives were built around home and mother. This life, inner security must come from within — not from property or family. Spiritual awakening often happens through domestic loss.', release: 'Dependency on home, mother, or material comforts.' },
+  5:  { title: 'Ketu in 5th — Past Creativity Released', meaning: 'Creative expression and romance were mastered in past lifetimes. Now you must use that creative intelligence for spiritual or humanitarian purposes rather than personal pleasure.', release: 'Ego-based creativity, romantic attachment, speculation.' },
+  6:  { title: 'Ketu in 6th — Past Service Released', meaning: 'Lifetimes of service and health work have given you innate healing ability. Past enemies are resolved; you naturally disarm conflicts. The path forward is through higher knowledge.', release: 'Perpetual conflict, over-service, health obsession.' },
+  7:  { title: 'Ketu in 7th — Past Partnerships Released', meaning: 'Deep past-life experiences with partnerships make you spiritually wise about relationships. Yet detachment from partners may cause distance. Marriage is karmic and complex.', release: 'Dependency on others, fear of being alone.' },
+  8:  { title: 'Ketu in 8th — Past Occult Released', meaning: 'Occult knowledge and deep transformations were mastered before. You have natural intuition about the unseen. This lifetime is about using that wisdom in service, not power.', release: 'Fear of death, power over others through hidden knowledge.' },
+  9:  { title: 'Ketu in 9th — Past Wisdom Released', meaning: 'Previous lifetimes were spent in temples, ashrams, and philosophical study. Now that dharmic foundation is complete — life calls you to translate wisdom into action.', release: 'Dogmatic religiosity, teacher-dependency, orthodoxy.' },
+  10: { title: 'Ketu in 10th — Past Career Released', meaning: 'Professional mastery and public status were achieved before. This life, inner spiritual purpose must replace external achievement. Career may feel hollow unless spiritually driven.', release: 'Status seeking, external validation, corporate identity.' },
+  11: { title: 'Ketu in 11th — Past Gains Released', meaning: 'Material gains and social networks were well-developed in past lives. This lifetime, the soul learns that true fulfillment is spiritual rather than social or material.', release: 'Greed, attachment to outcomes, social climbing.' },
+  12: { title: 'Ketu in 12th — The Liberated Soul', meaning: 'Ketu is extremely powerful here — you carry deep past-life spiritual merit. Moksha is very near. Dreams, intuition, and meditation are exceptionally strong. Loss leads to liberation.', release: 'Fear of the unknown, resistance to surrender.' },
+}
+
+// Yogakaraka: planet owning both a kendra (1,4,7,10) AND a trikona (1,5,9) = highest benefic
+// (1st house is both, so Lagna lord counts as partial — only listed for clear dual-ownership cases)
+const YOGAKARAKA_BY_LAGNA: Record<string, string | null> = {
+  'Mesha':    null,
+  'Vrishabha': 'Saturn',  // owns 9th (trikona) + 10th (kendra)
+  'Mithuna':  null,
+  'Karka':    'Mars',     // owns 5th (trikona) + 10th (kendra)
+  'Simha':    'Mars',     // owns 4th (kendra)  + 9th (trikona)
+  'Kanya':    null,
+  'Tula':     'Saturn',   // owns 4th (kendra)  + 5th (trikona)
+  'Vrishchika': null,
+  'Dhanu':    null,
+  'Makara':   'Venus',    // owns 5th (trikona) + 10th (kendra)
+  'Kumbha':   'Venus',    // owns 4th (kendra)  + 9th (trikona)
+  'Meena':    null,
+}
+
+// Parivartana Yoga: two planets in each other's own signs (sign exchange)
+const PLANET_SIGNS: Record<string, number[]> = {
+  Sun: [4], Moon: [3], Mars: [0, 7], Mercury: [2, 5],
+  Jupiter: [8, 11], Venus: [1, 6], Saturn: [9, 10],
+}
+
+function detectParivartana(planets: KundliData['planets']): { planetA: string; planetB: string; houses: [number, number] }[] {
+  const result: { planetA: string; planetB: string; houses: [number, number] }[] = []
+  const pByName = Object.fromEntries(planets.map(p => [p.name, p]))
+  const planetNames = ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn']
+  for (let i = 0; i < planetNames.length; i++) {
+    for (let j = i + 1; j < planetNames.length; j++) {
+      const a = pByName[planetNames[i]]
+      const b = pByName[planetNames[j]]
+      if (!a || !b) continue
+      const aOwnsB = PLANET_SIGNS[planetNames[i]]?.includes(b.rashiIndex) ?? false
+      const bOwnsA = PLANET_SIGNS[planetNames[j]]?.includes(a.rashiIndex) ?? false
+      if (aOwnsB && bOwnsA) {
+        result.push({ planetA: planetNames[i], planetB: planetNames[j], houses: [a.houseNumber, b.houseNumber] })
+      }
+    }
+  }
+  return result
+}
+
+// ─── Karmic Axis Section Component ─────────────────────────────────────────
+
+function KarmicAxisSection({ kundli }: { kundli: KundliData }) {
+  const rahu = kundli.planets.find(p => p.name === 'Rahu')
+  const ketu = kundli.planets.find(p => p.name === 'Ketu')
+  if (!rahu || !ketu) return null
+  const rahuMeaning = RAHU_HOUSE_MEANINGS[rahu.houseNumber]
+  const ketuMeaning = KETU_HOUSE_MEANINGS[ketu.houseNumber]
+  const lagnaName = RASHIS[kundli.ascendant.rashiIndex]?.name ?? ''
+  const yogakaraka = YOGAKARAKA_BY_LAGNA[lagnaName]
+  const parivartanas = detectParivartana(kundli.planets)
+
+  return (
+    <div className="space-y-4 mt-4">
+      <h3 className="font-cinzel text-sm text-violet-400/80 uppercase tracking-wider">Karmic Axis — Rahu & Ketu</h3>
+      <p className="text-xs font-cormorant text-slate-500 leading-relaxed">
+        Rahu shows your soul's dharmic <em>hunger</em> this lifetime. Ketu shows what you've already mastered — and must now release.
+      </p>
+
+      {/* Rahu */}
+      {rahuMeaning && (
+        <div className="rounded-xl border border-violet-500/20 bg-violet-500/5 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-lg">☊</span>
+            <span className="font-cinzel text-sm text-violet-300">House {rahu.houseNumber} — {rahuMeaning.title.split('—')[1].trim()}</span>
+          </div>
+          <p className="font-cormorant text-slate-300 text-sm leading-relaxed">{rahuMeaning.meaning}</p>
+          <p className="text-xs text-violet-400/70 mt-2 font-cinzel">Karmic desire: {rahuMeaning.desire}</p>
+        </div>
+      )}
+
+      {/* Ketu */}
+      {ketuMeaning && (
+        <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-lg">☋</span>
+            <span className="font-cinzel text-sm text-orange-300">House {ketu.houseNumber} — {ketuMeaning.title.split('—')[1].trim()}</span>
+          </div>
+          <p className="font-cormorant text-slate-300 text-sm leading-relaxed">{ketuMeaning.meaning}</p>
+          <p className="text-xs text-orange-400/70 mt-2 font-cinzel">Must release: {ketuMeaning.release}</p>
+        </div>
+      )}
+
+      {/* Yogakaraka */}
+      {yogakaraka && (
+        <div className="rounded-xl border border-gold/20 bg-gold/5 p-3 flex items-start gap-3">
+          <span className="text-xl">⭐</span>
+          <div>
+            <p className="font-cinzel text-sm text-gold">Yogakaraka: {yogakaraka}</p>
+            <p className="text-xs font-cormorant text-slate-400 mt-1">
+              {yogakaraka} rules both a trikona and a kendra from your {lagnaName} Lagna, making it the single most powerful planet in your chart for material and spiritual success. Strengthen it.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Parivartana Yogas */}
+      {parivartanas.length > 0 && (
+        <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-3">
+          <p className="font-cinzel text-xs text-cyan-400 uppercase tracking-wider mb-2">Parivartana Yoga (Sign Exchange)</p>
+          {parivartanas.map(pv => (
+            <p key={`${pv.planetA}-${pv.planetB}`} className="font-cormorant text-sm text-slate-300">
+              <span className="text-cyan-300">{pv.planetA} ↔ {pv.planetB}</span>
+              {' '}(Houses {pv.houses[0]} & {pv.houses[1]}) — these planets act as if conjunct, powerfully linking the themes of both houses.
+            </p>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function computeMockKundli(birthDate: string, birthTime: string, birthPlace: string, name: string): KundliData {
   // Parse date parts directly to avoid UTC timezone shift (new Date('YYYY-MM-DD') parses as UTC)
   const [year, month, day] = birthDate.split('-').map(Number)
@@ -333,7 +479,17 @@ function computeMockKundli(birthDate: string, birthTime: string, birthPlace: str
 
   const now = new Date()
   const currentMaha = mahadashas.find(m => new Date(m.startDate) <= now && new Date(m.endDate) >= now) || mahadashas[0]
-  const currentAntar = { planet: DASHA_SEQUENCE[(DASHA_SEQUENCE.indexOf(currentMaha.planet) + 3) % 9], startDate: currentMaha.startDate, endDate: currentMaha.endDate }
+  const mahaLordIdx = DASHA_SEQUENCE.indexOf(currentMaha.planet)
+  const MS_PER_YEAR = 365.25 * 24 * 60 * 60 * 1000
+  let antarStart = new Date(currentMaha.startDate)
+  let currentAntar = { planet: currentMaha.planet, startDate: currentMaha.startDate, endDate: currentMaha.endDate }
+  for (let i = 0; i < 9; i++) {
+    const antarLord = DASHA_SEQUENCE[(mahaLordIdx + i) % 9]
+    const antarYears = (DASHA_YEARS[currentMaha.planet as keyof typeof DASHA_YEARS] * DASHA_YEARS[antarLord as keyof typeof DASHA_YEARS]) / 120
+    const antarEnd = new Date(antarStart.getTime() + antarYears * MS_PER_YEAR)
+    if (now >= antarStart && now < antarEnd) { currentAntar = { planet: antarLord, startDate: antarStart.toISOString(), endDate: antarEnd.toISOString() }; break }
+    antarStart = antarEnd
+  }
 
   // Use the comprehensive yoga detection engine (40+ yogas)
   const planetInputs: PlanetInput[] = planets.map(p => ({
@@ -1861,8 +2017,11 @@ function KundliChartView({ kundli, onNew, onEdit }: { kundli: KundliData; onNew:
           )}
 
           {activeTab === 'Yogas' && (
-            <div className="glass-card p-5">
-              <YogasView kundli={kundli} />
+            <div className="space-y-4">
+              <div className="glass-card p-5">
+                <YogasView kundli={kundli} />
+              </div>
+              <KarmicAxisSection kundli={kundli} />
             </div>
           )}
 
