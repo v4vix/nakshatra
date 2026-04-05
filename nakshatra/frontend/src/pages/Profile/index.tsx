@@ -26,7 +26,7 @@ import {
   Link2,
   Trash2,
   Crown,
-} from 'lucide-react'
+} from '@/lib/lucide-icons'
 import toast from 'react-hot-toast'
 
 // ─── Types ────────────────────────────────────────────────────────────────────

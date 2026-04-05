@@ -10,7 +10,7 @@ import {
 import {
   ArrowLeft, ChevronLeft, ChevronRight, Calendar, List,
   Star, X, Clock, Flame, Sun, Moon,
-} from 'lucide-react'
+} from '@/lib/lucide-icons'
 import { Link } from 'react-router-dom'
 
 // ─── Day Detail Panel ───────────────────────────────────────────────────────

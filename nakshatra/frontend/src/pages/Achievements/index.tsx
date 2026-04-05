@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useStore } from '@/store'
-import { Trophy, Lock, Sparkles, Filter, Star, Zap } from 'lucide-react'
+import { Trophy, Lock, Sparkles, Filter, Star, Zap } from '@/lib/lucide-icons'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

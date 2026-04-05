@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { useStore } from '@/store'
 import { useTranslation } from '@/i18n'
 import { VARA_PLANETS, RASHI_DATA } from '@/lib/vedic-constants'
-import { ArrowLeft, Bell, Clock, Star, CheckCircle } from 'lucide-react'
+import { ArrowLeft, Bell, Clock, Star, CheckCircle } from '@/lib/lucide-icons'
 import { Link } from 'react-router-dom'
 
 // ─── Hora Engine ────────────────────────────────────────────────────────────

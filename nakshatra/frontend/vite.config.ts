@@ -18,6 +18,12 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // Stub out @sentry/react to avoid bundling @sentry/react + browser + core (200+ ESM files)
+      // which deadlocks Rollup's native binary on macOS. Sentry initialises lazily at runtime
+      // only when VITE_SENTRY_DSN is set — so this stub is safe for local/preview builds.
+      '@sentry/react': path.resolve(__dirname, 'src/lib/sentry-stub.ts'),
+      // Force CJS bundle (1 file) instead of 297 ESM files — prevents Rollup fd exhaustion
+      'framer-motion': path.resolve(__dirname, 'node_modules/framer-motion/dist/cjs/index.js'),
     },
   },
   server: {
@@ -36,6 +42,7 @@ export default defineConfig({
     include: ['react', 'react-dom', 'react-router-dom', 'framer-motion', 'zustand', '@tanstack/react-query', 'react-hot-toast', 'axios', 'lucide-react'],
   },
   build: {
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       // Sentry's unleash integration is optional — silence the missing module error
       onwarn(warning, warn) {

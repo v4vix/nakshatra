@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { Mail, Lock, LogIn, Eye, EyeOff } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Mail, Lock, LogIn, Eye, EyeOff, ChevronDown } from '@/lib/lucide-icons'
 import { useAuthStore } from '@/store/authStore'
 import toast from 'react-hot-toast'
 
@@ -9,6 +9,7 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [demoOpen, setDemoOpen] = useState(false)
   const { login, isLoading, error, clearError } = useAuthStore()
   const navigate = useNavigate()
 
@@ -22,7 +23,7 @@ export default function Login() {
     }
   }
 
-  function fillDemo(tier: string) {
+  async function loginAsDemo(tier: string) {
     // gitleaks:allow — intentional public demo credentials for staging/demo environment
     const accounts: Record<string, { email: string; password: string }> = {
       free: { email: 'free@nakshatra.app', password: 'nakshatra123' },
@@ -31,7 +32,13 @@ export default function Login() {
       admin: { email: 'admin@nakshatra.app', password: 'nakshatra_adm1n' },
     }
     const acc = accounts[tier]
-    if (acc) { setEmail(acc.email); setPassword(acc.password) }
+    if (!acc) return
+    clearError()
+    const ok = await login(acc.email, acc.password)
+    if (ok) {
+      toast.success(`Welcome! Signed in as ${tier} account.`)
+      navigate('/dashboard')
+    }
   }
 
   return (
@@ -129,29 +136,61 @@ export default function Login() {
           </p>
         </form>
 
-        {/* Demo accounts */}
-        <div className="mt-6 glass-card-dark rounded-2xl p-4 border border-gold/10">
-          <p className="font-cinzel text-xs text-gold/50 text-center mb-3 uppercase tracking-wider">Demo Accounts</p>
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { tier: 'free', label: 'Free', color: 'from-slate-500 to-slate-700' },
-              { tier: 'pro', label: 'Pro', color: 'from-blue-500 to-blue-700' },
-              { tier: 'guru', label: 'Guru', color: 'from-purple-500 to-purple-700' },
-              { tier: 'admin', label: 'Admin', color: 'from-amber-500 to-amber-700' },
-            ].map(({ tier, label, color }) => (
-              <button
-                key={tier}
-                type="button"
-                onClick={() => fillDemo(tier)}
-                className={`py-2 px-3 rounded-lg text-xs font-cinzel text-white bg-gradient-to-r ${color} hover:opacity-80 transition-opacity`}
+        {/* Demo accounts — behind a collapsible bar */}
+        <div className="mt-4">
+          <button
+            type="button"
+            onClick={() => setDemoOpen(o => !o)}
+            className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-stardust/40 bg-stardust/20 hover:bg-stardust/30 transition-colors group"
+          >
+            <span className="font-cinzel text-xs text-champagne/40 uppercase tracking-widest group-hover:text-champagne/60 transition-colors">
+              Demo Access
+            </span>
+            <motion.span
+              animate={{ rotate: demoOpen ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+              className="text-champagne/30 group-hover:text-champagne/50"
+            >
+              <ChevronDown size={14} />
+            </motion.span>
+          </button>
+
+          <AnimatePresence>
+            {demoOpen && (
+              <motion.div
+                key="demo-panel"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.22, ease: 'easeInOut' }}
+                className="overflow-hidden"
               >
-                {label}
-              </button>
-            ))}
-          </div>
-          <p className="text-xs text-champagne/30 font-cormorant text-center mt-2">
-            Click a button above, then sign in
-          </p>
+                <div className="mt-2 glass-card-dark rounded-xl p-4 border border-stardust/30">
+                  <p className="font-cinzel text-xs text-champagne/30 text-center mb-3 uppercase tracking-wider">
+                    Select a tier to sign in instantly
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { tier: 'free',  label: 'Free',  color: 'from-slate-500 to-slate-700' },
+                      { tier: 'pro',   label: 'Pro',   color: 'from-blue-500 to-blue-700' },
+                      { tier: 'guru',  label: 'Guru',  color: 'from-purple-500 to-purple-700' },
+                      { tier: 'admin', label: 'Admin', color: 'from-amber-500 to-amber-700' },
+                    ].map(({ tier, label, color }) => (
+                      <button
+                        key={tier}
+                        type="button"
+                        onClick={() => loginAsDemo(tier)}
+                        disabled={isLoading}
+                        className={`py-2 px-3 rounded-lg text-xs font-cinzel text-white bg-gradient-to-r ${color} hover:opacity-80 transition-opacity disabled:opacity-50`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </motion.div>
     </div>

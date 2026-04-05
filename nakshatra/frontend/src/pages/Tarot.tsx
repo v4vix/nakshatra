@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useStore, TarotReading } from '@/store'
 import { generateId } from '@/utils/generateId'
 import { drawTarotCards, getTarotReading } from '@/services/api'
-import { Search, ChevronLeft, BookOpen, Zap, Star, Clock, X, RefreshCw, ChevronRight, Layers } from 'lucide-react'
+import { Search, ChevronLeft, BookOpen, Zap, Star, Clock, X, RefreshCw, ChevronRight, Layers } from '@/lib/lucide-icons'
 
 // ─── Complete Tarot Deck ───────────────────────────────────────────────────
 

@@ -8,7 +8,7 @@ import {
   ArrowLeft, TrendingUp, Heart, Briefcase, Brain, Star, Shield, Calendar,
   Moon, Sun, Plane, Users, Sparkles, AlertTriangle, ChevronDown, ChevronUp,
   Zap, Target,
-} from 'lucide-react'
+} from '@/lib/lucide-icons'
 import { Link } from 'react-router-dom'
 
 // ─── Types ──────────────────────────────────────────────────────────────────

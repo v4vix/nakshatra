@@ -10,7 +10,7 @@ import {
   Hash,
   Home,
   Layers,
-} from 'lucide-react'
+} from '@/lib/lucide-icons'
 import toast from 'react-hot-toast'
 import axios from 'axios'
 

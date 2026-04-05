@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Users, BarChart3, Settings, Crown, Shield, Trash2, ChevronDown } from 'lucide-react'
+import { Users, BarChart3, Settings, Crown, Shield, Trash2, ChevronDown } from '@/lib/lucide-icons'
 import { useAuthStore } from '@/store/authStore'
 import {
   getAdminUsers, updateAdminUser, deleteAdminUser,

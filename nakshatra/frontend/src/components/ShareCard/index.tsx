@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Download, Copy, Share2, X, Check, Loader2, Bookmark } from 'lucide-react'
+import { Download, Copy, Share2, X, Check, Loader2, Bookmark } from '@/lib/lucide-icons'
 import { saveShareCard } from '@/services/auth'
 import toast from 'react-hot-toast'
 

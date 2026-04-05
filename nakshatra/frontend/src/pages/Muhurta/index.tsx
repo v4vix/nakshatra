@@ -14,7 +14,7 @@ import {
   Copy,
   Zap,
   Sun,
-} from 'lucide-react'
+} from '@/lib/lucide-icons'
 import toast from 'react-hot-toast'
 
 // ─── Constants & Types ────────────────────────────────────────────────────────

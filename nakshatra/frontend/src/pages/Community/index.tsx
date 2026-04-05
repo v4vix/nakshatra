@@ -4,7 +4,7 @@ import { useStore } from '@/store'
 import {
   Star, Heart, MessageCircle, Share2, Sparkles, TrendingUp,
   Hash, Users, Plus, X, ChevronRight, Zap,
-} from 'lucide-react'
+} from '@/lib/lucide-icons'
 import toast from 'react-hot-toast'
 
 // ─── Types ─────────────────────────────────────────────────────────────────

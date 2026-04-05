@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ExternalLink, Download, Share2 } from 'lucide-react'
+import { ExternalLink, Download, Share2 } from '@/lib/lucide-icons'
 import { getPublicCard } from '@/services/auth'
 
 export default function SharedCardPage() {

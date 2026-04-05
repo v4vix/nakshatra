@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Upload, FileText, X, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
+import { Upload, FileText, X, CheckCircle, AlertCircle, Loader2 } from '@/lib/lucide-icons'
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 

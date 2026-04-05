@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { useStore } from '@/store'
-import { Heart, Sparkles, ChevronRight, Star, RefreshCw } from 'lucide-react'
+import { Heart, Sparkles, ChevronRight, Star, RefreshCw } from '@/lib/lucide-icons'
 
 // ─── Cosmic Data Tables ────────────────────────────────────────────────────
 

@@ -12,7 +12,7 @@ import {
   Sparkles,
   Wind,
   Zap,
-} from 'lucide-react'
+} from '@/lib/lucide-icons'
 import toast from 'react-hot-toast'
 
 // ─── Constants (from shared source) ───────────────────────────────────────────

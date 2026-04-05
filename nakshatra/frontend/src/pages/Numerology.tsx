@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useStore } from '@/store'
-import { Calculator, RefreshCw, ChevronDown, ChevronUp, Zap, Info } from 'lucide-react'
+import { Calculator, RefreshCw, ChevronDown, ChevronUp, Zap, Info } from '@/lib/lucide-icons'
 import { calculateNumerology, getNumerologyCompatibility } from '@/services/api'
 
 // ─── Number Systems ────────────────────────────────────────────────────────

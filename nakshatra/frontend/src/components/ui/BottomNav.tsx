@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Home, Star, Sparkles, MessageCircle, User } from 'lucide-react'
+import { Home, Star, Sparkles, MessageCircle, User } from '@/lib/lucide-icons'
 import { useTranslation } from '@/i18n'
 import type { TranslationKey } from '@/i18n'
 

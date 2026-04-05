@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from '@/i18n'
 import { getCurrentTransits } from '@/lib/transits'
-import { ArrowLeft, Plus, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowLeft, Plus, X, ChevronLeft, ChevronRight } from '@/lib/lucide-icons'
 import { Link } from 'react-router-dom'
 
 // ─── Types ──────────────────────────────────────────────────────────────────

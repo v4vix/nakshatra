@@ -4,7 +4,7 @@ import { useStore } from '@/store'
 import {
   Heart, Star, AlertTriangle, CheckCircle2, ChevronDown, ChevronUp,
   Share2, Sparkles, Users, Calendar, Clock, MapPin, RefreshCw,
-} from 'lucide-react'
+} from '@/lib/lucide-icons'
 import toast from 'react-hot-toast'
 import ShareCard from '@/components/ShareCard'
 import { calculateKundli } from '@/services/api'

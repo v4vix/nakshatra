@@ -5,7 +5,7 @@ import { generateId } from '@/utils/generateId'
 import {
   ChevronLeft, Plus, Star, Clock, MapPin, Calendar, RefreshCw, ChevronDown, ChevronUp,
   Download, Copy, Share2, Check, BarChart3, Shield
-} from 'lucide-react'
+} from '@/lib/lucide-icons'
 import { generateChartImage, shareChart, copyChartToClipboard } from '@/lib/chart-share'
 import {
   detectYogas, computeAshtakvarga, computeShadbala, detectDoshas,

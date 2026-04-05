@@ -4,7 +4,7 @@ import { useStore } from '@/store'
 import { useTranslation } from '@/i18n'
 import { getCurrentTransits, getUpcomingTransits, getTransitToNatal, type PlanetTransit, type TransitEvent } from '@/lib/transits'
 import { RASHI_DATA } from '@/lib/vedic-constants'
-import { ArrowLeft, ChevronRight, Info, X } from 'lucide-react'
+import { ArrowLeft, ChevronRight, Info, X } from '@/lib/lucide-icons'
 import { Link } from 'react-router-dom'
 
 // ─── Planet Detail Modal ──────────────────────────────────────────────────

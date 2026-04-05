@@ -5,7 +5,7 @@ import {
   Home, Star, Hash, Compass, BookOpen, Trophy, Flame,
   User, Menu, X, Sparkles, Grid3X3, MessageCircle, Heart,
   Calendar, Clock, Users, Crown, Database, Shield
-} from 'lucide-react'
+} from '@/lib/lucide-icons'
 import { xpForLevel } from '@/store'
 import LanguageToggle from '@/components/ui/LanguageToggle'
 import { useTranslation } from '@/i18n'

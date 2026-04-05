@@ -4,7 +4,7 @@ import { useStore } from '@/store'
 import { useTranslation } from '@/i18n'
 import { getAllRemedies, getDailyRemedy, getPersonalizedRemedies, getRemedyCategories, type Remedy, type RemedyType } from '@/lib/remedies'
 import { NAKSHATRA_NAMES, RASHI_DATA } from '@/lib/vedic-constants'
-import { ArrowLeft, ChevronRight, Lock, CheckCircle, X, Flame } from 'lucide-react'
+import { ArrowLeft, ChevronRight, Lock, CheckCircle, X, Flame } from '@/lib/lucide-icons'
 import { Link } from 'react-router-dom'
 
 // ─── Remedy Detail Modal ────────────────────────────────────────────────────

@@ -7,7 +7,7 @@ import { getDailyShloka } from '@/services/api'
 import {
   Flame, Star, Zap, Trophy, BookOpen, Sparkles,
   ChevronRight, Clock, Activity, TrendingUp
-} from 'lucide-react'
+} from '@/lib/lucide-icons'
 
 // ─── Cosmic Energy Engine ──────────────────────────────────────────────────
 

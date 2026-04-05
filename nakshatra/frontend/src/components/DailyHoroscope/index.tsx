@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { useStore } from '@/store'
 import {
   ChevronDown, ChevronUp, Sparkles, ChevronRight, RefreshCw,
-} from 'lucide-react'
+} from '@/lib/lucide-icons'
 
 // ─── Planet Energy Tables ──────────────────────────────────────────────────
 

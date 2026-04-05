@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Mail, Lock, User, AtSign, UserPlus } from 'lucide-react'
+import { Mail, Lock, User, AtSign, UserPlus } from '@/lib/lucide-icons'
 import { useAuthStore } from '@/store/authStore'
 import toast from 'react-hot-toast'
 

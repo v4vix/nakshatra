@@ -3,9 +3,21 @@
   "configurations": [
     {
       "name": "nakshatra-frontend",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--prefix", "nakshatra/frontend", "--", "--host"],
+      "runtimeExecutable": "/opt/homebrew/bin/node",
+      "runtimeArgs": ["/Users/vikram/Documents/dev/bitsizegyaan/nakshatra/frontend/node_modules/vite/bin/vite.js", "/Users/vikram/Documents/dev/bitsizegyaan/nakshatra/frontend", "--host", "--port", "5173"],
+      "env": {
+        "NO_UPDATE_NOTIFIER": "1"
+      },
       "port": 5173
+    },
+    {
+      "name": "nakshatra-backend",
+      "runtimeExecutable": "/opt/homebrew/bin/node",
+      "runtimeArgs": ["/Users/vikram/Documents/dev/bitsizegyaan/nakshatra/backend/node_modules/.bin/ts-node-dev", "--respawn", "--transpile-only", "/Users/vikram/Documents/dev/bitsizegyaan/nakshatra/backend/src/index.ts"],
+      "env": {
+        "NODE_ENV": "development"
+      },
+      "port": 3001
     }
   ]
 }

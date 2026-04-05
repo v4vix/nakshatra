@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom'
 import {
   ArrowLeft, Play, Download, Share2, Mail, MessageCircle, Loader2,
   Star, Clock, Shield, TrendingUp, Sparkles, ChevronRight, Lock
-} from 'lucide-react'
+} from '@/lib/lucide-icons'
 import { RASHI_DATA, NAKSHATRA_NAMES } from '@/lib/vedic-constants'
 
 // ─── Video Scene Types ────────────────────────────────────────────────────

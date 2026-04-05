@@ -20,7 +20,7 @@ import {
   Flame,
   Wind,
   Mountain,
-} from 'lucide-react'
+} from '@/lib/lucide-icons'
 import toast from 'react-hot-toast'
 
 // ─── Types ────────────────────────────────────────────────────────────────────

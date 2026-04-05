@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Lock } from 'lucide-react'
+import { Lock } from '@/lib/lucide-icons'
 import { hasPlan, type PlanId } from '@/lib/purchases'
 import UpgradeModal from './UpgradeModal'
 

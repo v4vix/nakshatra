@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, ScrollText } from 'lucide-react'
+import { ArrowLeft, ScrollText } from '@/lib/lucide-icons'
 
 const sections = [
   {

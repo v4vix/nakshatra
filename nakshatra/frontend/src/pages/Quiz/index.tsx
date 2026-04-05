@@ -7,7 +7,7 @@ import {
   generateQuiz, generateDailyChallenge, calculateScore, saveQuizResult,
   isDailyChallengeCompleted, getQuizStats, type QuizResult
 } from '@/lib/quiz-engine'
-import { ArrowLeft, Trophy, Zap, Clock, Star, RotateCcw, CheckCircle, XCircle } from 'lucide-react'
+import { ArrowLeft, Trophy, Zap, Clock, Star, RotateCcw, CheckCircle, XCircle } from '@/lib/lucide-icons'
 import { Link } from 'react-router-dom'
 
 type Screen = 'home' | 'playing' | 'results'

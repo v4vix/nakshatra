@@ -5,7 +5,7 @@ import { useStore } from '@/store'
 import { useAuthStore } from '@/store/authStore'
 import { generateId } from '@/utils/generateId'
 import StarfieldCanvas from '@/components/layout/StarfieldCanvas'
-import { ChevronRight, ChevronLeft, Sparkles, Star, Calendar, Clock, MapPin } from 'lucide-react'
+import { ChevronRight, ChevronLeft, Sparkles, Star, Calendar, Clock, MapPin } from '@/lib/lucide-icons'
 import toast from 'react-hot-toast'
 
 const AVATARS = ['🌟', '☀️', '🌙', '⭐', '🪐', '✨', '🔮', '🌺', '🦋', '🕉️', '🌸', '💫']

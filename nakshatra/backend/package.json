@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "build": "tsc",
+    "build": "find src -name '*.ts' ! -name '*.test.ts' | xargs node_modules/.bin/esbuild --bundle=false --platform=node --target=node20 --outdir=dist --format=cjs",
+    "build:tsc": "tsc",
     "start": "node dist/index.js",
     "test": "vitest run"
   },

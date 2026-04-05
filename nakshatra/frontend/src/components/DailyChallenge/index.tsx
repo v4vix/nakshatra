@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useStore } from '@/store'
-import { Zap, Clock, Star, CheckCircle2, XCircle, ChevronRight, Trophy, RefreshCw } from 'lucide-react'
+import { Zap, Clock, Star, CheckCircle2, XCircle, ChevronRight, Trophy, RefreshCw } from '@/lib/lucide-icons'
 import toast from 'react-hot-toast'
 
 // ─── Types ─────────────────────────────────────────────────────────────────

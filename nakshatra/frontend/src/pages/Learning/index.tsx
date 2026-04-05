@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useStore } from '@/store'
 import { useTranslation } from '@/i18n'
-import { ArrowLeft, BookOpen, CheckCircle, Lock, ChevronRight, Award, X } from 'lucide-react'
+import { ArrowLeft, BookOpen, CheckCircle, Lock, ChevronRight, Award, X } from '@/lib/lucide-icons'
 import { Link } from 'react-router-dom'
 
 // ─── Course Data ────────────────────────────────────────────────────────────

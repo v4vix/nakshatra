@@ -14,7 +14,7 @@ import {
   MessageCircle,
   Loader2,
   Send,
-} from 'lucide-react'
+} from '@/lib/lucide-icons'
 import toast from 'react-hot-toast'
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api/v1'

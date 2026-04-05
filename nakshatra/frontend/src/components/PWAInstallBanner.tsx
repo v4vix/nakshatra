@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Smartphone, X } from 'lucide-react'
+import { Smartphone, X } from '@/lib/lucide-icons'
 import { usePWA } from '@/hooks/usePWA'
 
 const DISMISSED_KEY = 'pwa_banner_dismissed'

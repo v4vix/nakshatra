@@ -15,7 +15,7 @@ import {
   ChevronDown,
   ChevronUp,
   ExternalLink,
-} from 'lucide-react'
+} from '@/lib/lucide-icons'
 import toast from 'react-hot-toast'
 import axios from 'axios'
 import KnowledgeUploader from '@/components/KnowledgeUploader'

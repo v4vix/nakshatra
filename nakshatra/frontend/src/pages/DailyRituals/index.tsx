@@ -16,7 +16,7 @@ import {
   Award,
   Sparkles,
   Calendar,
-} from 'lucide-react'
+} from '@/lib/lucide-icons'
 import toast from 'react-hot-toast'
 
 // ─── Types ────────────────────────────────────────────────────────────────────

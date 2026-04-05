@@ -2,11 +2,23 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "frontend",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["vite", "--port", "5173"],
-      "port": 5173,
-      "cwd": "frontend"
+      "name": "nakshatra-frontend",
+      "runtimeExecutable": "/opt/homebrew/bin/node",
+      "runtimeArgs": ["/Users/vikram/Documents/dev/bitsizegyaan/nakshatra/frontend/node_modules/vite/bin/vite.js", "/Users/vikram/Documents/dev/bitsizegyaan/nakshatra/frontend", "--host", "--port", "5173"],
+      "env": {
+        "NO_UPDATE_NOTIFIER": "1"
+      },
+      "port": 5173
+    },
+    {
+      "name": "nakshatra-backend",
+      "runtimeExecutable": "/opt/homebrew/bin/node",
+      "runtimeArgs": ["/Users/vikram/Documents/dev/bitsizegyaan/nakshatra/backend/dist/index.js"],
+      "env": {
+        "NODE_ENV": "development"
+      },
+      "cwd": "/Users/vikram/Documents/dev/bitsizegyaan/nakshatra/backend",
+      "port": 3001
     }
   ]
 }

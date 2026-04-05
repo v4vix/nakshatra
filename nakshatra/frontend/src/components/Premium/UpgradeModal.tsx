@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Check, Star, Zap, Crown, Shield, ChevronRight, Sparkles } from 'lucide-react'
+import { X, Check, Star, Zap, Crown, Shield, ChevronRight, Sparkles } from '@/lib/lucide-icons'
 import toast from 'react-hot-toast'
 import { isNative } from '@/lib/native'
 import { getOfferings, purchasePackage, restorePurchases, refreshSubscriptionState } from '@/lib/purchases'
