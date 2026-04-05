@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useStore, KundliData } from '@/store'
+import { getLiveDasha } from '@/lib/vedic-calculations'
 import { usePremium } from '@/hooks/usePremium'
 import PremiumGate from '@/components/Premium/PremiumGate'
 import { Link } from 'react-router-dom'
@@ -33,7 +34,9 @@ function generateScenes(kundli: KundliData): VideoScene[] {
   const sunRashi = sun ? RASHIS_SIMPLE[sun.rashiIndex] : 'Unknown'
   const moonRashi = moon ? RASHIS_SIMPLE[moon.rashiIndex] : 'Unknown'
 
-  const { currentMahadasha, currentAntardasha } = kundli.dashas
+  const liveDasha = kundli.dashas?.mahadashas ? getLiveDasha(kundli.dashas.mahadashas) : null
+  const currentMahadasha = liveDasha?.currentMahadasha ?? kundli.dashas.currentMahadasha
+  const currentAntardasha = liveDasha?.currentAntardasha ?? kundli.dashas.currentAntardasha
   const now = new Date()
   const currentYear = now.getFullYear()
 

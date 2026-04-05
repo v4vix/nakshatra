@@ -1540,3 +1540,42 @@ export function getNadiInfo(nakshatraIndex: number): NadiDoshaInfo {
 export function hasNadiDosha(nakshatra1: number, nakshatra2: number): boolean {
   return NADI_MAP[nakshatra1 % 27] === NADI_MAP[nakshatra2 % 27];
 }
+
+// ─── Live Dasha Helpers ──────────────────────────────────────────────────────
+
+const VIMSHOTTARI_YEARS: Record<string, number> = {
+  Ketu: 7, Venus: 20, Sun: 6, Moon: 10, Mars: 7,
+  Rahu: 18, Jupiter: 16, Saturn: 19, Mercury: 17,
+}
+const VIMSHOTTARI_SEQ = ['Ketu', 'Venus', 'Sun', 'Moon', 'Mars', 'Rahu', 'Jupiter', 'Saturn', 'Mercury']
+const MS_PER_YEAR = 365.25 * 24 * 60 * 60 * 1000
+
+/**
+ * Derive the current Mahadasha and Antardasha live from the stored mahadashas array.
+ * Never reads the stale currentMahadasha/currentAntardasha snapshots.
+ */
+export function getLiveDasha(mahadashas: Array<{ planet: string; startDate: string; endDate: string; years: number }>) {
+  const now = new Date()
+  const currentMahadasha =
+    mahadashas.find(m => new Date(m.startDate) <= now && new Date(m.endDate) >= now) ??
+    mahadashas[mahadashas.length - 1]
+
+  if (!currentMahadasha) return null
+
+  const mahaLordIdx = VIMSHOTTARI_SEQ.indexOf(currentMahadasha.planet)
+  let antarStart = new Date(currentMahadasha.startDate)
+  let currentAntardasha = { planet: currentMahadasha.planet, startDate: currentMahadasha.startDate, endDate: currentMahadasha.endDate }
+
+  for (let i = 0; i < 9; i++) {
+    const antarLord = VIMSHOTTARI_SEQ[(mahaLordIdx + i) % 9]
+    const antarYears = (currentMahadasha.years * VIMSHOTTARI_YEARS[antarLord]) / 120
+    const antarEnd = new Date(antarStart.getTime() + antarYears * MS_PER_YEAR)
+    if (now >= antarStart && now < antarEnd) {
+      currentAntardasha = { planet: antarLord, startDate: antarStart.toISOString().split('T')[0], endDate: antarEnd.toISOString().split('T')[0] }
+      break
+    }
+    antarStart = antarEnd
+  }
+
+  return { currentMahadasha, currentAntardasha }
+}

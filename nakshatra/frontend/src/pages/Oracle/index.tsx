@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useStore } from '@/store'
 import { RASHI_NAMES, NAKSHATRA_NAMES } from '@/lib/vedic-constants'
+import { getLiveDasha } from '@/lib/vedic-calculations'
 import {
   Send,
   Sparkles,
@@ -791,8 +792,8 @@ export default function OraclePage() {
       ? RASHI_NAMES[moonPlanet.rashiIndex] : undefined,
     birthNakshatra: moonPlanet?.nakshatraIndex !== undefined
       ? NAKSHATRA_NAMES[moonPlanet.nakshatraIndex] : undefined,
-    currentMahadasha: activeKundli?.dashas?.currentMahadasha?.planet,
-    currentAntardasha: activeKundli?.dashas?.currentAntardasha?.planet,
+    currentMahadasha: (() => { const ld = activeKundli?.dashas?.mahadashas ? getLiveDasha(activeKundli.dashas.mahadashas) : null; return ld?.currentMahadasha?.planet })(),
+    currentAntardasha: (() => { const ld = activeKundli?.dashas?.mahadashas ? getLiveDasha(activeKundli.dashas.mahadashas) : null; return ld?.currentAntardasha?.planet })(),
   }
 
   const scrollToBottom = useCallback(() => {

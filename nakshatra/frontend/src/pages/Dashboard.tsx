@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { useStore } from '@/store'
 import { useTranslation } from '@/i18n'
 import { getDailyShloka } from '@/services/api'
+import { getLiveDasha } from '@/lib/vedic-calculations'
 import {
   Flame, Star, Zap, Trophy, BookOpen, Sparkles,
   ChevronRight, Clock, Activity, TrendingUp
@@ -492,22 +493,28 @@ export default function Dashboard() {
               <div className="rounded-xl p-4 bg-gold/5 border border-gold/20">
                 <div className="text-3xl mb-2">📅</div>
                 <div className="font-cinzel font-bold text-gold">
-                  {activeKundli?.dashas?.currentMahadasha?.planet
-                    ? `${activeKundli.dashas.currentMahadasha.planet} ${t('dashboard.mahadasha')}`
-                    : t('dashboard.todaysEnergy')}
+                  {(() => {
+                    const liveDasha = activeKundli?.dashas?.mahadashas ? getLiveDasha(activeKundli.dashas.mahadashas) : null
+                    return liveDasha
+                      ? `${liveDasha.currentMahadasha.planet} ${t('dashboard.mahadasha')}`
+                      : t('dashboard.todaysEnergy')
+                  })()}
                 </div>
-                {activeKundli?.dashas?.currentMahadasha ? (
+                {(() => {
+                  const liveDasha = activeKundli?.dashas?.mahadashas ? getLiveDasha(activeKundli.dashas.mahadashas) : null
+                  return liveDasha ? (
                   <div className="text-sm font-cormorant text-slate-300 mt-2">
-                    Antardasha: {activeKundli.dashas.currentAntardasha?.planet ?? '—'}
+                    Antardasha: {liveDasha.currentAntardasha.planet}
                     <div className="text-xs text-slate-400 mt-1">
-                      Until {new Date(activeKundli.dashas.currentMahadasha.endDate).toLocaleDateString('en-IN', { year: 'numeric', month: 'short' })}
+                      Until {new Date(liveDasha.currentMahadasha.endDate).toLocaleDateString('en-IN', { year: 'numeric', month: 'short' })}
                     </div>
                   </div>
-                ) : (
+                  ) : (
                   <div className="text-sm font-cormorant text-slate-300 mt-2">
                     Create your Kundli to unlock your Vimshottari Dasha periods.
                   </div>
-                )}
+                  )
+                })()}
               </div>
             </div>
           </div>

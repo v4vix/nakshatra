@@ -817,7 +817,12 @@ function CinematicLoader({ onComplete }: { onComplete: () => void }) {
 
 function DashaView({ kundli }: { kundli: KundliData }) {
   const now = new Date()
-  const { currentMahadasha, currentAntardasha, mahadashas } = kundli.dashas
+  const { mahadashas } = kundli.dashas
+  // Always derive current Mahadasha from the live mahadashas array — never use the
+  // snapshot stored at creation time, which goes stale as Mahadasha periods change.
+  const currentMahadasha = mahadashas.find(
+    m => new Date(m.startDate) <= now && new Date(m.endDate) >= now
+  ) ?? mahadashas[mahadashas.length - 1]
   const [showAntardashas, setShowAntardashas] = useState<string | null>(null)
 
   // Compute antardasha periods within a mahadasha
@@ -858,11 +863,11 @@ function DashaView({ kundli }: { kundli: KundliData }) {
     return prats
   }
 
-  // Find current antardasha and pratyantar
+  // Find current antardasha and pratyantar — computed live from dynamic currentMahadasha
   const currentMahaAntars = getAntardashas(currentMahadasha.startDate, currentMahadasha.endDate, currentMahadasha.planet)
-  const activeAntar = currentMahaAntars.find(a => a.start <= now && a.end >= now)
+  const activeAntar = currentMahaAntars.find(a => a.start <= now && a.end >= now) ?? currentMahaAntars[0]
   const activePrats = activeAntar ? getPratyantars(activeAntar.start, activeAntar.end, activeAntar.planet) : []
-  const activePrat = activePrats.find(p => p.start <= now && p.end >= now)
+  const activePrat = activePrats.find(p => p.start <= now && p.end >= now) ?? activePrats[0]
 
   return (
     <div className="space-y-4">
@@ -878,9 +883,9 @@ function DashaView({ kundli }: { kundli: KundliData }) {
           </div>
           <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-xl px-4 py-3">
             <div className="text-xs text-cyan-400/70 font-cinzel">Antardasha</div>
-            <div className="text-xl font-cinzel text-cyan-300">{activeAntar?.planet ?? currentAntardasha.planet}</div>
+            <div className="text-xl font-cinzel text-cyan-300">{activeAntar.planet}</div>
             <div className="text-xs text-slate-400 mt-1">
-              Until {activeAntar ? activeAntar.end.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : new Date(currentAntardasha.endDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
+              Until {activeAntar.end.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
             </div>
           </div>
           {activePrat && (

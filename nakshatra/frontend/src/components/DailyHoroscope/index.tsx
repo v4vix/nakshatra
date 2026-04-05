@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { useStore } from '@/store'
+import { getLiveDasha } from '@/lib/vedic-calculations'
 import {
   ChevronDown, ChevronUp, Sparkles, ChevronRight, RefreshCw,
 } from '@/lib/lucide-icons'
@@ -231,9 +232,10 @@ export default function DailyHoroscope() {
   const horoscope = useMemo(() => {
     if (!kundli) return null
 
-    // Current Mahadasha planet
-    const mahadashaPlanet = kundli.dashas?.currentMahadasha?.planet ?? 'Jupiter'
-    const antardashaPlanet = kundli.dashas?.currentAntardasha?.planet ?? 'Moon'
+    // Current Mahadasha planet — derived live so it never goes stale
+    const liveDasha = kundli.dashas?.mahadashas ? getLiveDasha(kundli.dashas.mahadashas) : null
+    const mahadashaPlanet = liveDasha?.currentMahadasha?.planet ?? 'Jupiter'
+    const antardashaPlanet = liveDasha?.currentAntardasha?.planet ?? 'Moon'
 
     // Moon nakshatra from kundli
     const moonPlanet = kundli.planets.find((p) => p.name === 'Moon')
