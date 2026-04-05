@@ -11,6 +11,13 @@ RUN npm install --no-audit --no-fund
 COPY frontend/ ./
 RUN npm run build
 
+# Fail loudly if Vite did not produce the assets directory
+RUN echo "=== Frontend dist contents ===" \
+ && ls -la /app/frontend/dist/ \
+ && echo "=== Assets ===" \
+ && ls /app/frontend/dist/assets/ | head -20 \
+ && echo "✓ Frontend assets present"
+
 # Stage 2: Build backend
 FROM node:22-bookworm AS backend-build
 WORKDIR /app/backend
@@ -24,6 +31,8 @@ RUN npm install --no-audit --no-fund
 COPY backend/ ./
 # Use esbuild (fast, no type-checking) instead of tsc which can time out on CI
 RUN npm run build
+
+RUN echo "=== Backend dist ===" && ls /app/backend/dist/
 
 # Stage 3: Production runtime
 FROM node:22-bookworm AS production
@@ -41,8 +50,13 @@ COPY --from=backend-build /app/backend/package*.json ./
 # Install only production deps (includes native better-sqlite3)
 RUN npm install --no-audit --no-fund --omit=dev
 
-# Copy built frontend
+# Copy built frontend — verified present in Stage 1
 COPY --from=frontend-build /app/frontend/dist ./public
+
+# Confirm the copy landed correctly
+RUN echo "=== /app/public ===" \
+ && ls -la /app/public/ \
+ && ls /app/public/assets/ | head -10
 
 # Create data directory for SQLite and non-root user
 RUN mkdir -p /app/data \

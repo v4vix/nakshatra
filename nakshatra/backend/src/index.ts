@@ -97,8 +97,15 @@ app.get('/health', (_req: Request, res: Response) => {
 app.use('/api/v1', apiRouter);
 
 // Serve frontend static files in production
+import fs from 'fs';
 const publicDir = path.join(__dirname, '..', 'public');
 if (process.env.NODE_ENV === 'production') {
+  const assetsDir = path.join(publicDir, 'assets');
+  const assetsExist = fs.existsSync(assetsDir);
+  const indexExists = fs.existsSync(path.join(publicDir, 'index.html'));
+  console.log(`   Static dir : ${publicDir}`);
+  console.log(`   index.html : ${indexExists ? '✓' : '✗ MISSING'}`);
+  console.log(`   assets/    : ${assetsExist ? '✓ ' + fs.readdirSync(assetsDir).length + ' files' : '✗ MISSING'}`);
   app.use(express.static(publicDir, { maxAge: '1d' }));
   // SPA fallback: any non-API route returns index.html
   app.get('*', (_req: Request, res: Response) => {
