@@ -371,7 +371,7 @@ export default function Dashboard() {
   const moonPhase = useMemo(() => getMoonPhase(today), [today])
   const challenge = useMemo(() => getDailyChallenge(today), [today])
 
-  const [dailyShloka, setDailyShloka] = useState<{ text: string; source: string; translation?: string } | null>(null)
+  const [dailyShloka, setDailyShloka] = useState<{ text: string; hindi?: string; source: string; translation?: string } | null>(null)
 
   useEffect(() => {
     getDailyShloka()
@@ -379,11 +379,12 @@ export default function Dashboard() {
         if (data?.shloka) {
           setDailyShloka({
             text: data.shloka.verse || data.shloka.text || '',
+            hindi: data.shloka.hindi || '',
             source: data.shloka.source || '',
             translation: data.shloka.translation || data.shloka.meaning || '',
           })
         } else if (data?.text || data?.verse) {
-          setDailyShloka({ text: data.text || data.verse, source: data.source || '', translation: data.translation })
+          setDailyShloka({ text: data.text || data.verse, hindi: data.hindi || '', source: data.source || '', translation: data.translation })
         }
       })
       .catch(() => { /* silently ignore – dashboard stays functional */ })
@@ -528,9 +529,20 @@ export default function Dashboard() {
                 <BookOpen size={16} className="text-rose-300" />
                 <h2 className="font-cinzel text-sm uppercase tracking-widest text-rose-300">Today's Shloka</h2>
               </div>
-              <blockquote className="font-cormorant text-lg text-white leading-relaxed italic">
-                "{dailyShloka.text}"
-              </blockquote>
+              {dailyShloka.hindi ? (
+                <blockquote className="font-sans text-xl text-white leading-relaxed text-center mb-2" style={{ fontFamily: 'serif' }}>
+                  {dailyShloka.hindi}
+                </blockquote>
+              ) : (
+                <blockquote className="font-cormorant text-lg text-white leading-relaxed italic">
+                  "{dailyShloka.text}"
+                </blockquote>
+              )}
+              {dailyShloka.hindi && (
+                <p className="font-cormorant text-sm text-slate-400 italic text-center leading-relaxed mb-2">
+                  {dailyShloka.text}
+                </p>
+              )}
               {dailyShloka.translation && (
                 <p className="font-cormorant text-sm text-slate-300 mt-3 leading-relaxed">
                   {dailyShloka.translation}

@@ -40,6 +40,7 @@ export interface VastuInterpretation {
 
 export interface ShlokaEntry {
   verse: string;
+  hindi: string;
   source: string;
   translation: string;
   meaning: string;
@@ -389,48 +390,56 @@ const VASTU_ZONES: Record<string, { element: string; ruling: string; description
 const DAILY_SHLOKAS: ShlokaEntry[] = [
   {
     verse: 'Karagre vasate Lakshmi, karamadhye Saraswati | Karamule sthita Gouri, prabhate karadarshanam ||',
+    hindi: 'करागे्र वसते लक्ष्मी, करमध्ये सरस्वती |\nकरमूले स्थिता गौरी, प्रभाते करदर्शनम् ॥',
     source: 'Traditional morning prayer (Stotra)',
     translation: 'At the tip of the hands resides Lakshmi (wealth), in the middle resides Saraswati (wisdom), at the base of the hands resides Gauri (Shakti). Therefore, one should see one\'s hands every morning.',
     meaning: 'This shloka reminds us that the hands are sacred instruments containing divine energy. Looking at the palms upon waking aligns the mind with purpose, creativity, and divine grace before engaging the world.',
   },
   {
     verse: 'Vakratunda mahakaya suryakoti samaprabha | Nirvighnam kuru me deva sarva karyeshu sarvada ||',
+    hindi: 'वक्रतुण्ड महाकाय सूर्यकोटि समप्रभ |\nनिर्विघ्नं कुरु मे देव सर्वकार्येषु सर्वदा ॥',
     source: 'Ganesha Stuti',
     translation: 'O Lord Ganesha, of curved trunk and mighty form, with the radiance of a million suns, please remove all obstacles from my endeavors, always and in all things.',
     meaning: 'Ganesha, the remover of obstacles, is invoked before any significant beginning. This prayer acknowledges that our best efforts require divine alignment, and that surrendering pride in the work to the greater intelligence yields auspicious results.',
   },
   {
     verse: 'Sarve bhavantu sukhinah, sarve santu niramayah | Sarve bhadrani pashyantu, ma kashchid duhkha bhagbhavet ||',
+    hindi: 'सर्वे भवन्तु सुखिनः, सर्वे सन्तु निरामयाः |\nसर्वे भद्राणि पश्यन्तु, मा कश्चित् दुःखभाग्भवेत् ॥',
     source: 'Brihadaranyaka Upanishad',
     translation: 'May all beings be happy; may all beings be free from disease; may all beings see what is auspicious; may none suffer.',
     meaning: 'This universal prayer from the Upanishads expands the heart beyond personal concerns. Vedic wisdom teaches that genuine happiness is only possible when we sincerely wish wellbeing for all. This prayer is a spiritual technology for dissolving the illusion of separation.',
   },
   {
     verse: 'Om asato ma sadgamaya, tamaso ma jyotirgamaya | Mrityor ma amritam gamaya, om shanti shanti shanti ||',
+    hindi: 'ॐ असतो मा सद्गमय, तमसो मा ज्योतिर्गमय |\nमृत्योर्मा अमृतं गमय, ॐ शान्तिः शान्तिः शान्तिः ॥',
     source: 'Brihadaranyaka Upanishad 1.3.28',
     translation: 'Lead me from the unreal to the real; lead me from darkness to light; lead me from death to immortality. Om, peace, peace, peace.',
     meaning: 'This Upanishadic invocation represents the deepest prayer of the seeking soul. The movement from asat (unreal/ego) to sat (real/Self), from tamas (ignorance) to jyoti (illumination), and from mrityu (the death-identified life) to amrita (the deathless Self) is the entire arc of sadhana.',
   },
   {
     verse: 'Guru Brahma, Guru Vishnu, Guru devo Maheshvara | Guru sakshat para Brahma, tasmai shri gurave namah ||',
+    hindi: 'गुरुर्ब्रह्मा गुरुर्विष्णु गुरुर्देवो महेश्वरः |\nगुरुः साक्षात् परं ब्रह्म तस्मै श्रीगुरवे नमः ॥',
     source: 'Traditional Guru Stotra',
     translation: 'The Guru is Brahma (the creator), the Guru is Vishnu (the sustainer), the Guru is Shiva (the transformer). The Guru is verily the Supreme Absolute itself. To that revered Guru, I bow.',
     meaning: 'The Vedic tradition holds the Guru as the living embodiment of the supreme truth. This shloka acknowledges that all three cosmic functions — creation, preservation, and dissolution — are contained within the enlightened teacher who transmits liberation to the student.',
   },
   {
     verse: 'Yada yada hi dharmasya glanir bhavati bharata | Abhyutthanam adharmasya tadatmanam srijamyaham ||',
+    hindi: 'यदा यदा हि धर्मस्य ग्लानिर्भवति भारत |\nअभ्युत्थानमधर्मस्य तदात्मानं सृजाम्यहम् ॥',
     source: 'Bhagavad Gita 4.7',
     translation: 'Whenever there is a decline of righteousness (dharma) and a rise of unrighteousness, O Arjuna, then I manifest myself on earth.',
     meaning: 'Krishna\'s assurance of divine intervention in times of moral decline offers profound comfort. It teaches that the universe has a self-correcting intelligence, and that periods of adharma are always followed by the arising of a force that restores cosmic balance. Our role is to remain aligned with dharma.',
   },
   {
     verse: 'Nayam atma pravacanena labhyo na medhaya na bahuna shrutena | Yam evaisa vrinute tena labhyas tasyaisa atma vivrinute tanum svam ||',
+    hindi: 'नायमात्मा प्रवचनेन लभ्यो न मेधया न बहुना श्रुतेन |\nयमेवैष वृणुते तेन लभ्यस्तस्यैष आत्मा विवृणुते तनूं स्वाम् ॥',
     source: 'Katha Upanishad 1.2.23',
     translation: 'This Self cannot be attained by study, nor by intellect, nor by much learning. It is attained only by the one whom It chooses; to that one It reveals Its own form.',
     meaning: 'The Katha Upanishad reveals the paradox at the heart of spiritual seeking: the Self cannot be grasped by the very mind that seeks it. This teaching dissolves spiritual ego and opens the seeker to grace. Sadhana creates the conditions; the Self reveals itself in its own time.',
   },
   {
     verse: 'Tamasoma jyotirgamaya | Asato ma sadgamaya | Mrityor mamritam gamaya ||',
+    hindi: 'तमसो मा ज्योतिर्गमय | असतो मा सद्गमय |\nमृत्योर्मामृतं गमय ॥',
     source: 'Pavamana Mantras, Brihadaranyaka Upanishad',
     translation: 'From darkness, lead me to light. From unreality, lead me to reality. From death, lead me to immortality.',
     meaning: 'These three prayers, known as the Pavamana Mantras, represent the three primary movements of spiritual awakening. Darkness to light is intellectual illumination; unreality to reality is philosophical awakening; death to immortality is the direct experiential recognition of one\'s deathless nature.',
