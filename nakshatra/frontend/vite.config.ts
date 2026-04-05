@@ -3,6 +3,12 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
+// On macOS, Rollup's native binary deadlocks when opening 200+ ESM files simultaneously
+// (framer-motion has 297, @sentry/react has 200+) due to the low default fd limit (256).
+// We work around this by aliasing them to single-file CJS/stub versions on macOS only.
+// On Linux (Docker / Render CI) the fd limit is 1M+ so the standard ESM bundles work fine.
+const isMacOS = process.platform === 'darwin'
+
 export default defineConfig({
   plugins: [react()],
   test: {
@@ -18,12 +24,12 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      // Stub out @sentry/react to avoid bundling @sentry/react + browser + core (200+ ESM files)
-      // which deadlocks Rollup's native binary on macOS. Sentry initialises lazily at runtime
-      // only when VITE_SENTRY_DSN is set — so this stub is safe for local/preview builds.
-      '@sentry/react': path.resolve(__dirname, 'src/lib/sentry-stub.ts'),
-      // Force CJS bundle (1 file) instead of 297 ESM files — prevents Rollup fd exhaustion
-      'framer-motion': path.resolve(__dirname, 'node_modules/framer-motion/dist/cjs/index.js'),
+      // macOS-only: stub Sentry to avoid opening 200+ ESM files → Rollup fd deadlock
+      ...(isMacOS && {
+        '@sentry/react': path.resolve(__dirname, 'src/lib/sentry-stub.ts'),
+        // Force CJS bundle (1 file) instead of 297 ESM files
+        'framer-motion': path.resolve(__dirname, 'node_modules/framer-motion/dist/cjs/index.js'),
+      }),
     },
   },
   server: {

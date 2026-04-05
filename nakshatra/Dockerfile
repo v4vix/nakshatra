@@ -22,7 +22,8 @@ COPY backend/package*.json ./
 RUN npm install --no-audit --no-fund
 
 COPY backend/ ./
-RUN npx tsc
+# Use esbuild (fast, no type-checking) instead of tsc which can time out on CI
+RUN npm run build
 
 # Stage 3: Production runtime
 FROM node:22-bookworm AS production
