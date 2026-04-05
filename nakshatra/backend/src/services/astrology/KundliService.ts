@@ -85,9 +85,10 @@ function detectGajaKesari(planets: Record<string, PlanetInChart>): boolean {
   const moon = planets['Moon'];
   const jupiter = planets['Jupiter'];
   if (!moon || !jupiter) return false;
-  const houseDiff = Math.abs(moon.house - jupiter.house);
-  // Gaja Kesari: Jupiter in kendra (1, 4, 7, 10) from Moon
-  return [0, 3, 6, 9].includes(houseDiff) || houseDiff === 0;
+  const diff = Math.abs(moon.house - jupiter.house);
+  const circDiff = Math.min(diff, 12 - diff);
+  // Gaja Kesari: Jupiter in kendra (1, 4, 7, 10) from Moon — circular distance
+  return [0, 3, 6, 9].includes(circDiff);
 }
 
 function detectPanchaMahapurusha(planets: Record<string, PlanetInChart>, lagnaRashiIndex: number): YogaInfo[] {
@@ -234,18 +235,20 @@ function detectKaalSarpDosha(planets: Record<string, PlanetInChart>): DoshaInfo 
   const otherPlanets = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn'];
   const planetHouses = otherPlanets.map(p => planets[p]?.house || 0).filter(h => h > 0);
 
-  // Determine the arc from Rahu to Ketu going forward
-  let allInArc = true;
-  for (const h of planetHouses) {
-    let inArc = false;
-    let current = rahulHouse;
-    // Walk from Rahu to Ketu
-    for (let step = 0; step <= 6; step++) {
-      if (current === h) { inArc = true; break; }
-      current = (current % 12) + 1;
-    }
-    if (!inArc) { allInArc = false; break; }
+  // Determine the arc from Rahu to Ketu going forward (Rahu→Ketu arc)
+  // Build the set of house numbers strictly between Rahu and Ketu (exclusive)
+  const rahuToKetuArc = new Set<number>();
+  let current = rahulHouse;
+  while (true) {
+    current = (current % 12) + 1; // next house
+    if (current === ketuHouse) break;
+    rahuToKetuArc.add(current);
   }
+  rahuToKetuArc.add(rahulHouse);
+  rahuToKetuArc.add(ketuHouse);
+
+  // All planets must lie within the Rahu→Ketu arc (not in the opposite arc)
+  let allInArc = planetHouses.every(h => rahuToKetuArc.has(h));
 
   const isPresent = allInArc;
 

@@ -150,11 +150,14 @@ export class DashaService {
     const mahadashas: DashaPeriod[] = [];
     let currentDate = birthDate;
 
-    // First dasha (partial — only remaining portion)
+    // First dasha: anchor at the THEORETICAL start (before birth) so that
+    // Antardasha sub-periods are placed correctly relative to birth.
+    // The birth falls mid-dasha; using birthDate as startDate would misplace all Antardashas.
+    const firstTheoreticalStart = addYears(birthDate, -elapsedYearsInFirstDasha);
     const firstEndDate = addYears(birthDate, remainingYearsInFirstDasha);
     mahadashas.push({
       planet: startPlanet,
-      startDate: new Date(birthDate),
+      startDate: firstTheoreticalStart,
       endDate: firstEndDate,
       durationYears: startPlanetTotalYears,
     });

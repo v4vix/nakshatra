@@ -48,7 +48,7 @@ const PYTHAGOREAN_CHART: Record<string, number> = {
   s: 1, t: 2, u: 3, v: 4, w: 5, x: 6, y: 7, z: 8,
 };
 
-const VOWELS = new Set(['a', 'e', 'i', 'o', 'u', 'y']);
+const VOWELS = new Set(['a', 'e', 'i', 'o', 'u']);
 
 /**
  * Calculate Expression Number (Destiny Number) from full name.

@@ -528,35 +528,31 @@ export class EphemerisService {
   getAscendant(julianDay: number, lat: number, lon: number): AscendantData {
     const T = (julianDay - 2451545.0) / 36525.0;
 
-    // Obliquity of the ecliptic
+    // Obliquity of the ecliptic (uses T from full JD — correct)
     const epsilon = 23.4392911 - 0.013004167 * T - 0.0000001639 * T * T + 0.0000005036 * T * T * T;
     const epsilonRad = toRad(epsilon);
 
     // Greenwich Mean Sidereal Time at 0h UT (degrees)
-    const theta0 = normalizeAngle(100.4606184 + 36000.77004 * T + 0.000387933 * T * T - T * T * T / 38710000);
+    // Must use T0 from JD at 0h UT — using full JD double-counts the diurnal rotation
+    const JD0 = Math.floor(julianDay - 0.5) + 0.5;
+    const T0 = (JD0 - 2451545.0) / 36525.0;
+    const theta0 = normalizeAngle(100.4606184 + 36000.77004 * T0 + 0.000387933 * T0 * T0 - T0 * T0 * T0 / 38710000);
 
     // Local Sidereal Time (degrees)
-    const UT =
-      (julianDay - Math.floor(julianDay - 0.5) - 0.5) * 24;
+    const UT = (julianDay - JD0) * 24;
     const LST = normalizeAngle(theta0 + 360.985647 * (UT / 24) + lon);
 
     // RAMC in radians
     const RAMC = toRad(LST);
     const latRad = toRad(lat);
 
-    // Ascendant formula from Meeus
+    // Ascendant formula from Meeus Chapter 14.
+    // atan2(-cos θ, sin ε tan φ + cos ε sin θ) yields the DESCENDING ecliptic point;
+    // adding 180° gives the ASCENDING point (Lagna). No additional quadrant test needed.
     const y = -Math.cos(RAMC);
     const x = Math.sin(epsilonRad) * Math.tan(latRad) + Math.cos(epsilonRad) * Math.sin(RAMC);
 
-    let ascTropical = normalizeAngle(toDeg(Math.atan2(y, x)));
-
-    // Ensure ascendant is in correct quadrant
-    // The ascendant must be in the same half of the ecliptic as the RAMC
-    const Q = Math.floor(LST / 90);
-    const ascQ = Math.floor(ascTropical / 90);
-    if (ascQ !== Q % 4) {
-      ascTropical = normalizeAngle(ascTropical + 180);
-    }
+    const ascTropical = normalizeAngle(toDeg(Math.atan2(y, x)) + 180);
 
     const siderealAsc = this.tropicalToSidereal(ascTropical, julianDay);
     const rashi = this.getRashi(siderealAsc);
