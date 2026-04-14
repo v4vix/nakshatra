@@ -874,18 +874,26 @@ function NumerologyResults({ form, result, onRecalculate }: ResultsProps) {
 // ─── Main Numerology Page ──────────────────────────────────────────────────
 
 export default function NumerologyPage() {
-  const { numerologyProfile, setNumerologyProfile, addXP } = useStore()
+  const { numerologyProfile, setNumerologyProfile, addXP, getActiveKundli } = useStore()
+  const activeKundli = getActiveKundli()
+
+  // Pre-fill from active kundli if available; fall back to persisted numerologyProfile
+  const initialName = activeKundli?.name ?? numerologyProfile?.fullName ?? ''
+  const initialDate = activeKundli?.birthDate ?? numerologyProfile?.birthDate ?? ''
+
+  // Only restore cached result if it matches the active kundli (same name + date)
+  const profileMatchesActive =
+    numerologyProfile &&
+    numerologyProfile.fullName === initialName &&
+    numerologyProfile.birthDate === initialDate
+
   const [form, setForm] = useState<FormState | null>(
-    numerologyProfile
-      ? {
-          fullName: numerologyProfile.fullName,
-          birthDate: numerologyProfile.birthDate,
-          system: 'Pythagorean',
-        }
+    initialName && initialDate
+      ? { fullName: initialName, birthDate: initialDate, system: 'Pythagorean' }
       : null
   )
   const [result, setResult] = useState<NumerologyResult | null>(() => {
-    if (numerologyProfile) {
+    if (profileMatchesActive && numerologyProfile) {
       const py = numerologyProfile.personalYearNumber
       const now = new Date()
       const pm = digitSum(py + (now.getMonth() + 1))
