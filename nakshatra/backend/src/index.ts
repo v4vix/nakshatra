@@ -29,19 +29,19 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
 }));
 
-// CORS — in production the backend serves the frontend (same origin),
-// so we allow same-origin requests plus any configured CORS_ORIGIN.
+// CORS — backend serves the frontend from the same origin in production,
+// so same-origin requests (no Origin header) are always allowed.
+// Cross-origin is only needed for mobile apps or external integrations —
+// set CORS_ORIGIN to a comma-separated whitelist in that case.
 const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173').split(',').map(o => o.trim());
 app.use(cors({
   origin: (origin, callback) => {
-    // No origin = same-origin request (e.g. frontend served by this backend)
+    // No origin = same-origin request from the served frontend
     if (!origin) return callback(null, true);
-    // Allow configured origins
+    // Explicit whitelist (checked in all environments)
     if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) return callback(null, true);
-    // In production, also allow requests from the same host (Render, etc.)
-    if (process.env.NODE_ENV === 'production') return callback(null, true);
-    // Dev mode: allow all
-    if (process.env.NODE_ENV === 'development') return callback(null, true);
+    // Dev-only: allow all to ease local development
+    if (process.env.NODE_ENV !== 'production') return callback(null, true);
     callback(new Error(`CORS policy: origin ${origin} not allowed`));
   },
   credentials: true,

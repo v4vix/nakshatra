@@ -25,6 +25,11 @@ services:
         sync: false          # default: nakshatra123      (change for prod)
       - key: ADMIN_TOKEN
         generateValue: true
+      # CORS — only needed if a mobile app or external client calls this API.
+      # The web frontend is same-origin (served by this service), so leave blank
+      # for web-only deployments.
+      - key: CORS_ORIGIN
+        sync: false          # e.g. https://your-mobile-app.com,https://other-client.com
       # ── AI keys — waterfall: Ollama → Groq → OpenAI → Anthropic ──────────
       - key: GROQ_API_KEY
         sync: false          # free tier — https://console.groq.com
