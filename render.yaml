@@ -1,0 +1,35 @@
+services:
+  # ── Nakshatra: single Node service (backend serves frontend static files) ─────
+  - type: web
+    name: nakshatra-app
+    runtime: node
+    plan: free
+    region: oregon
+    # No rootDir — build runs from repo root so we can build both sub-projects
+    buildCommand: >
+      cd nakshatra/backend && npm ci && npm run build && mkdir -p data public &&
+      cd ../frontend && npm ci && npm run build &&
+      cp -r dist/. ../backend/public/
+    startCommand: cd nakshatra/backend && node dist/index.js
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 22.22.0
+      - key: NODE_ENV
+        value: production
+      # ── Required secrets (set in Render dashboard) ─────────────────────────
+      - key: ADMIN_PASSWORD
+        sync: false          # default: nakshatra_adm1n  (change for prod)
+      - key: DEMO_PASSWORD
+        sync: false          # default: nakshatra123      (change for prod)
+      - key: ADMIN_TOKEN
+        generateValue: true
+      # ── Optional AI keys ───────────────────────────────────────────────────
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      # ── Optional integrations ──────────────────────────────────────────────
+      - key: REVENUECAT_API_KEY
+        sync: false
