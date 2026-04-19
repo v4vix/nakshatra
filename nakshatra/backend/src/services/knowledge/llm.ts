@@ -13,6 +13,10 @@ import { LLMModel, LLMProvider } from './types';
 const OLLAMA_BASE = process.env.OLLAMA_URL || 'http://localhost:11434';
 const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
 const GROQ_BASE = 'https://api.groq.com/openai/v1';
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
+const OPENAI_BASE = process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
+const OPENAI_MODEL_KB = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 
 const SYSTEM_PROMPT = `You are the Cosmic Oracle of Nakshatra, an expert in Vedic astrology (Jyotisha), Tarot, Numerology, Vastu Shastra, and Hindu scriptures. You draw upon the Brihat Parashara Hora Shastra, Jataka Parijata, Saravali, Phaladeepika, the Bhagavad Gita, Upanishads, and the Vedas.
 
@@ -45,9 +49,9 @@ async function getOllamaModels(): Promise<string[]> {
   }
 }
 
-function isGroqAvailable(): boolean {
-  return GROQ_API_KEY.length > 0;
-}
+function isGroqAvailable(): boolean { return GROQ_API_KEY.length > 0; }
+function isOpenAIAvailable(): boolean { return OPENAI_API_KEY.length > 0; }
+function isAnthropicAvailable(): boolean { return ANTHROPIC_API_KEY.length > 0; }
 
 // ─── Streaming Generation ───────────────────────────────────────────────────────
 
@@ -89,6 +93,26 @@ export async function* generate(
       return;
     } catch (err) {
       console.warn('[LLM] Groq streaming failed, falling through:', (err as Error).message);
+    }
+  }
+
+  // ── Try OpenAI ──
+  if (isOpenAIAvailable()) {
+    try {
+      yield* streamOpenAI(fullPrompt, temperature, maxTokens);
+      return;
+    } catch (err) {
+      console.warn('[LLM] OpenAI streaming failed, falling through:', (err as Error).message);
+    }
+  }
+
+  // ── Try Anthropic ──
+  if (isAnthropicAvailable()) {
+    try {
+      yield* streamAnthropic(fullPrompt, temperature, maxTokens);
+      return;
+    } catch (err) {
+      console.warn('[LLM] Anthropic streaming failed, falling through:', (err as Error).message);
     }
   }
 
@@ -205,6 +229,96 @@ async function* streamGroq(
   }
 }
 
+// ─── OpenAI Streaming ───────────────────────────────────────────────────────────
+
+async function* streamOpenAI(
+  prompt: string,
+  temperature: number,
+  maxTokens: number,
+): AsyncGenerator<{ text: string; provider: LLMProvider; model: string; done: boolean }> {
+  const response = await axios.post(
+    `${OPENAI_BASE}/chat/completions`,
+    {
+      model: OPENAI_MODEL_KB,
+      messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: prompt }],
+      temperature,
+      max_tokens: maxTokens,
+      stream: true,
+    },
+    {
+      headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+      responseType: 'stream',
+      timeout: 30_000,
+    },
+  );
+
+  let buffer = '';
+  for await (const rawChunk of response.data) {
+    buffer += rawChunk.toString();
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || !trimmed.startsWith('data: ')) continue;
+      const data = trimmed.slice(6);
+      if (data === '[DONE]') { yield { text: '', provider: 'openai', model: OPENAI_MODEL_KB, done: true }; return; }
+      try {
+        const delta = JSON.parse(data)?.choices?.[0]?.delta?.content;
+        if (delta) yield { text: delta, provider: 'openai', model: OPENAI_MODEL_KB, done: false };
+      } catch { /* partial JSON */ }
+    }
+  }
+}
+
+// ─── Anthropic Streaming ────────────────────────────────────────────────────────
+
+async function* streamAnthropic(
+  prompt: string,
+  _temperature: number,
+  maxTokens: number,
+): AsyncGenerator<{ text: string; provider: LLMProvider; model: string; done: boolean }> {
+  const ANTHROPIC_MODEL = 'claude-haiku-4-5-20251001';
+  const response = await axios.post(
+    'https://api.anthropic.com/v1/messages',
+    {
+      model: ANTHROPIC_MODEL,
+      max_tokens: maxTokens,
+      stream: true,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: prompt }],
+    },
+    {
+      headers: {
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'Content-Type': 'application/json',
+      },
+      responseType: 'stream',
+      timeout: 30_000,
+    },
+  );
+
+  let buffer = '';
+  for await (const rawChunk of response.data) {
+    buffer += rawChunk.toString();
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith('data: ')) continue;
+      try {
+        const evt = JSON.parse(trimmed.slice(6));
+        if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
+          yield { text: evt.delta.text, provider: 'anthropic', model: ANTHROPIC_MODEL, done: false };
+        } else if (evt.type === 'message_stop') {
+          yield { text: '', provider: 'anthropic', model: ANTHROPIC_MODEL, done: true };
+          return;
+        }
+      } catch { /* partial JSON */ }
+    }
+  }
+}
+
 // ─── Rule-Based Fallback ────────────────────────────────────────────────────────
 
 async function* ruleBasedFallback(
@@ -266,21 +380,21 @@ export async function listModels(): Promise<LLMModel[]> {
 
   // Groq
   if (isGroqAvailable()) {
-    models.push({
-      id: 'groq:llama-3.3-70b-versatile',
-      name: 'LLaMA 3.3 70B (Groq)',
-      provider: 'groq',
-      available: true,
-    });
+    models.push({ id: 'groq:llama-3.3-70b-versatile', name: 'LLaMA 3.3 70B (Groq)', provider: 'groq', available: true });
+  }
+
+  // OpenAI
+  if (isOpenAIAvailable()) {
+    models.push({ id: `openai:${OPENAI_MODEL_KB}`, name: `${OPENAI_MODEL_KB} (OpenAI)`, provider: 'openai', available: true });
+  }
+
+  // Anthropic
+  if (isAnthropicAvailable()) {
+    models.push({ id: 'anthropic:claude-haiku-4-5-20251001', name: 'Claude Haiku (Anthropic)', provider: 'anthropic', available: true });
   }
 
   // Rule engine is always available
-  models.push({
-    id: 'rule-engine:vedic-rules-v1',
-    name: 'Vedic Rule Engine (Fallback)',
-    provider: 'rule-engine',
-    available: true,
-  });
+  models.push({ id: 'rule-engine:vedic-rules-v1', name: 'Vedic Rule Engine (Fallback)', provider: 'rule-engine', available: true });
 
   return models;
 }

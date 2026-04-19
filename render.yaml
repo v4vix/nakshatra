@@ -25,11 +25,17 @@ services:
         sync: false          # default: nakshatra123      (change for prod)
       - key: ADMIN_TOKEN
         generateValue: true
-      # ── Optional AI keys ───────────────────────────────────────────────────
-      - key: ANTHROPIC_API_KEY
-        sync: false
+      # ── AI keys — waterfall: Ollama → Groq → OpenAI → Anthropic ──────────
       - key: GROQ_API_KEY
-        sync: false
+        sync: false          # free tier — https://console.groq.com
+      - key: OPENAI_API_KEY
+        sync: false          # gpt-4o-mini, cheap fallback
+      - key: OPENAI_BASE_URL
+        sync: false          # override to use Groq/Together-compatible endpoint
+      - key: OPENAI_MODEL
+        sync: false          # default: gpt-4o-mini
+      - key: ANTHROPIC_API_KEY
+        sync: false          # claude-haiku, final cloud fallback
       # ── Optional integrations ──────────────────────────────────────────────
       - key: REVENUECAT_API_KEY
         sync: false

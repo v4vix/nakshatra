@@ -83,7 +83,7 @@ export interface VectorStoreStats {
 
 // ─── LLM Types ──────────────────────────────────────────────────────────────────
 
-export type LLMProvider = 'ollama' | 'groq' | 'rule-engine';
+export type LLMProvider = 'ollama' | 'groq' | 'openai' | 'anthropic' | 'rule-engine';
 
 export interface LLMModel {
   id: string;

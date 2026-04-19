@@ -1,10 +1,64 @@
+import axios from 'axios';
 import { Response } from 'express';
 import { ollamaService, OllamaChatMessage } from './OllamaService';
 import { ruleBasedEngine, KundliInterpretationParams } from './RuleBasedEngine';
 import { claudeService } from './ClaudeService';
 
 export type LLMDomain = 'kundli' | 'tarot' | 'numerology' | 'vastu' | 'scripture' | 'general';
-export type LLMProvider = 'ollama' | 'rule-based' | 'claude';
+export type LLMProvider = 'ollama' | 'groq' | 'openai' | 'claude' | 'rule-based';
+
+// ── OpenAI-compatible provider call (Groq / OpenAI) ──────────────────────────
+async function callOpenAICompat(
+  messages: OllamaChatMessage[],
+  apiKey: string,
+  baseUrl: string,
+  model: string,
+): Promise<string | null> {
+  try {
+    const res = await axios.post(
+      `${baseUrl}/chat/completions`,
+      { model, messages, max_tokens: 1200, temperature: 0.7 },
+      { headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' }, timeout: 30_000 },
+    );
+    return res.data?.choices?.[0]?.message?.content ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function* streamOpenAICompat(
+  messages: OllamaChatMessage[],
+  apiKey: string,
+  baseUrl: string,
+  model: string,
+): AsyncGenerator<string> {
+  const res = await axios.post(
+    `${baseUrl}/chat/completions`,
+    { model, messages, max_tokens: 1200, temperature: 0.7, stream: true },
+    { headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' }, responseType: 'stream', timeout: 30_000 },
+  );
+  let buf = '';
+  for await (const raw of res.data) {
+    buf += raw.toString();
+    const lines = buf.split('\n');
+    buf = lines.pop() ?? '';
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith('data: ')) continue;
+      const data = trimmed.slice(6);
+      if (data === '[DONE]') return;
+      try {
+        const delta = JSON.parse(data)?.choices?.[0]?.delta?.content;
+        if (delta) yield delta;
+      } catch { /* partial chunk */ }
+    }
+  }
+}
+
+const GROQ_BASE = 'https://api.groq.com/openai/v1';
+const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+const OPENAI_BASE = process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
+const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 
 export interface LLMRequest {
   domain: LLMDomain;
@@ -161,7 +215,27 @@ Respond with wisdom grounded in classical Vedic tradition. Be specific and avoid
       };
     }
 
-    // Step 4: Fall back to Claude
+    // Step 4: Groq (free tier, OpenAI-compatible)
+    const groqKey = process.env.GROQ_API_KEY;
+    if (groqKey) {
+      const messages = this.buildPrompt(req, ruleResult.content);
+      const groqContent = await callOpenAICompat(messages, groqKey, GROQ_BASE, GROQ_MODEL);
+      if (groqContent && groqContent.trim().length > 100) {
+        return { content: groqContent, provider: 'groq', confidence: 0.80, streaming: false, metadata: { model: GROQ_MODEL } };
+      }
+    }
+
+    // Step 5: OpenAI (paid, cheap)
+    const openaiKey = process.env.OPENAI_API_KEY;
+    if (openaiKey) {
+      const messages = this.buildPrompt(req, ruleResult.content);
+      const oaiContent = await callOpenAICompat(messages, openaiKey, OPENAI_BASE, OPENAI_MODEL);
+      if (oaiContent && oaiContent.trim().length > 100) {
+        return { content: oaiContent, provider: 'openai', confidence: 0.85, streaming: false, metadata: { model: OPENAI_MODEL } };
+      }
+    }
+
+    // Step 6: Anthropic Claude (high quality, final cloud fallback)
     if (claudeService.isAvailable()) {
       try {
         const response = await claudeService.complete({
@@ -186,7 +260,7 @@ Respond with wisdom grounded in classical Vedic tradition. Be specific and avoid
       }
     }
 
-    // Step 5: Return rule-based content regardless of confidence, or error message
+    // Step 7: Return rule-based content regardless of confidence, or error message
     if (ruleResult.content.trim().length > 0) {
       return {
         content: ruleResult.content,
@@ -244,6 +318,40 @@ Respond with wisdom grounded in classical Vedic tradition. Be specific and avoid
       console.warn('[Orchestrator Stream] Ollama failed:', (err as Error).message);
     }
 
+    // Try Groq streaming
+    const groqKeyS = process.env.GROQ_API_KEY;
+    if (groqKeyS) {
+      try {
+        const messages = this.buildPrompt(req, ruleResult.content);
+        sendChunk({ type: 'start', provider: 'groq' });
+        let hasGroq = false;
+        for await (const chunk of streamOpenAICompat(messages, groqKeyS, GROQ_BASE, GROQ_MODEL)) {
+          sendChunk({ type: 'delta', text: chunk });
+          hasGroq = true;
+        }
+        if (hasGroq) { sendChunk({ type: 'done', provider: 'groq' }); res.end(); return; }
+      } catch (err) {
+        console.warn('[Orchestrator Stream] Groq failed:', (err as Error).message);
+      }
+    }
+
+    // Try OpenAI streaming
+    const openaiKeyS = process.env.OPENAI_API_KEY;
+    if (openaiKeyS) {
+      try {
+        const messages = this.buildPrompt(req, ruleResult.content);
+        sendChunk({ type: 'start', provider: 'openai' });
+        let hasOAI = false;
+        for await (const chunk of streamOpenAICompat(messages, openaiKeyS, OPENAI_BASE, OPENAI_MODEL)) {
+          sendChunk({ type: 'delta', text: chunk });
+          hasOAI = true;
+        }
+        if (hasOAI) { sendChunk({ type: 'done', provider: 'openai' }); res.end(); return; }
+      } catch (err) {
+        console.warn('[Orchestrator Stream] OpenAI failed:', (err as Error).message);
+      }
+    }
+
     // Try Claude streaming
     if (claudeService.isAvailable()) {
       try {
@@ -284,28 +392,29 @@ Respond with wisdom grounded in classical Vedic tradition. Be specific and avoid
 
   async getProviderStatus(): Promise<{
     ollama: { available: boolean; model: string; url: string };
+    groq: { available: boolean; model: string };
+    openai: { available: boolean; model: string };
     claude: { available: boolean; model: string };
     ruleBased: { available: boolean };
     activeProvider: LLMProvider;
   }> {
     const ollamaAvailable = await ollamaService.isHealthy().catch(() => false);
+    const groqAvailable = !!(process.env.GROQ_API_KEY);
+    const openaiAvailable = !!(process.env.OPENAI_API_KEY);
     const claudeAvailable = claudeService.isAvailable();
 
-    const activeProvider: LLMProvider = ollamaAvailable ? 'ollama' : claudeAvailable ? 'claude' : 'rule-based';
+    const activeProvider: LLMProvider = ollamaAvailable ? 'ollama'
+      : groqAvailable ? 'groq'
+      : openaiAvailable ? 'openai'
+      : claudeAvailable ? 'claude'
+      : 'rule-based';
 
     return {
-      ollama: {
-        available: ollamaAvailable,
-        model: ollamaService.getModel(),
-        url: ollamaService.getBaseUrl(),
-      },
-      claude: {
-        available: claudeAvailable,
-        model: claudeService.getModel(),
-      },
-      ruleBased: {
-        available: true,
-      },
+      ollama: { available: ollamaAvailable, model: ollamaService.getModel(), url: ollamaService.getBaseUrl() },
+      groq: { available: groqAvailable, model: GROQ_MODEL },
+      openai: { available: openaiAvailable, model: OPENAI_MODEL },
+      claude: { available: claudeAvailable, model: claudeService.getModel() },
+      ruleBased: { available: true },
       activeProvider,
     };
   }
